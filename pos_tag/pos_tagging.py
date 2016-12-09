@@ -18,6 +18,14 @@ def mle (x, y, xv, yv):
 
 
 def get_nij(X, S):
+    # new syntax
+    flattened_X = np.asarray([item for sublist in X for item in ['']+sublist+['']])
+    occ_mat = np.zeros((len(S), len(flattened_X)))
+    for i, s in enumerate(S):
+        occ_mat[i, :] = flattened_X == s
+    nij = np.matmul(occ_mat[:,:-1], np.transpose(occ_mat[:,1:]))
+
+
     nij = np.zeros([len(S)]*2)
     for seq in X:
         seq = np.asarray(seq)

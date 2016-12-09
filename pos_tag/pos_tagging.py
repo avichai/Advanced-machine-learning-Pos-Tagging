@@ -1,6 +1,6 @@
 import numpy as np
 
-def mle (x , y):
+def mle (x, y, xv, yv):
     '''
         Calculate the maximum likelihood estimators for the transition and
         emission distributions , in the multinomial HMM case .
@@ -10,28 +10,29 @@ def mle (x , y):
         t . shape = (| val ( X )| ,| val ( X )|) , and
         e . shape = (| val ( X )| ,| val ( Y )|)
     '''
-    S = np.unique(x)
-    T = np.unique(y)
-
-    nij = get_nij(x, S)
-    nyi = get_nyi(x, y, S, T)
+    nij = get_nij(x, xv)
+    nyi = get_nyi(x, y, xv, yv)
     t_hat = get_estimator(nij)
     e_hat = get_estimator(nyi)
     return t_hat, e_hat
 
 
 def get_nij(X, S):
-    nij = np.zeros(len(S))
-    for i, si in enumerate(S):
-        for j, sj in enumerate(S):
-            nij[i, j] = np.sum(np.logical_and(np.where(X == sj)[1:], np.where(X == si)[:-1]))
+    nij = np.zeros([len(S)]*2)
+    for seq in X:
+        seq = np.asarray(seq)
+        for i, si in enumerate(S):
+            for j, sj in enumerate(S):
+                nij[i, j] += np.sum(np.logical_and((seq == sj)[1:], (seq == si)[:-1]))
     return nij
 
 def get_nyi(X, Y, S, T):
     nyi = np.zeros(len(T), len(S))
     for i, s in enumerate(S):
         for j, t in enumerate(T):
-            nyi[i, j] = np.sum(np.logical_and(np.where(X == s), np.where(Y == t)))
+            for seqX, seqY in zip(X, Y):
+                nyi[i, j] = np.sum(np.logical_and(np.asarray(seqX) == s, np.asarray(seqY) == t))
+
     return nyi
 
 def get_estimator(n_mat):

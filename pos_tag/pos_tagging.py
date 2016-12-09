@@ -18,13 +18,16 @@ def mle (x, y, xv, yv):
 
 
 def get_nij(X, S):
+    from time import time
+    t= time()
     # new syntax
     flattened_X = np.asarray([item for sublist in X for item in ['']+sublist+['']])
     occ_mat = np.zeros((len(S), len(flattened_X)))
     for i, s in enumerate(S):
         occ_mat[i, :] = flattened_X == s
-    nij = np.matmul(occ_mat[:,:-1], np.transpose(occ_mat[:,1:]))
-
+    new_nij = np.matmul(occ_mat[:,:-1], np.transpose(occ_mat[:,1:]))
+    print ('Done new syntax in {0} seconds'.format(time() -t))
+    t= time()
 
     nij = np.zeros([len(S)]*2)
     for seq in X:
@@ -32,6 +35,12 @@ def get_nij(X, S):
         for i, si in enumerate(S):
             for j, sj in enumerate(S):
                 nij[i, j] += np.sum(np.logical_and((seq == sj)[1:], (seq == si)[:-1]))
+    print('Done old syntax in {0} seconds'.format(time() - t))
+    if not np.all(new_nij == nij):
+        raise Exception("They are not the same!")
+    else:
+        print("YAY")
+        exit(0)
     return nij
 
 def get_nyi(X, Y, S, T):

@@ -1,6 +1,11 @@
 import numpy as np
+from numpy.matlib import repmat as repmat
+from numpy.random import multinomial, choice
 
-def mle (x, y, xv, yv):
+MAX_OCC_MAT_SIZE = 0.25e9  # Maximum allowed matrix elements
+
+
+def mle(x, y, xv, yv):
     '''
         Calculate the maximum likelihood estimators for the transition and
         emission distributions , in the multinomial HMM case .
@@ -10,29 +15,105 @@ def mle (x, y, xv, yv):
         t . shape = (| val ( X )| ,| val ( X )|) , and
         e . shape = (| val ( X )| ,| val ( Y )|)
     '''
+    flatten_X, flatten_Y = flatten_list(x), flatten_list(y)
+    M = len(flatten_Y)
+    # TODO - assuming here memory can always handle matrix of (len(xv) X M)
     occ_mat_X = get_occ_mat(x, xv)
     occ_mat_Y = get_occ_mat(y, yv)
     nij = get_nij(occ_mat_X)
     nyi = get_nyi(occ_mat_X, occ_mat_Y)
     t_hat = get_estimator(nij)
     e_hat = get_estimator(nyi)
-    return t_hat, e_hat
+    return t_hat, e_hat, get_q_hat(x, xv)
+
+
+def get_q_hat(X, xvals):
+    prefix_X = np.asarray([seq[0] for seq in X])
+    q = np.zeros(len(xvals))
+    for i, j in enumerate(xvals):
+        q[i] = np.sum((prefix_X == j).astype(np.uint32))
+    return q / q.sum()
+
 
 def flatten_list(lst):
-    return np.asarray([item for sublist in lst for item in ['']+sublist+['']])
+    # TODO - make sure '' is not a possible x or y word!
+    return np.asarray([item for sublist in lst for item in [''] + sublist + ['']])
+
 
 def get_occ_mat(lst, vals):
     flat_list = flatten_list(lst)
-    occ_mat = np.zeros((len(vals), len(flat_list)))
+    occ_mat = np.zeros((len(vals), len(flat_list)), dtype=np.bool)
     for i, v in enumerate(vals):
         occ_mat[i, :] = flat_list == v
     return occ_mat
 
+
 def get_nij(occ_mat_X):
-    return np.matmul(occ_mat_X[:,:-1], np.transpose(occ_mat_X[:,1:]))
+    return np.matmul(occ_mat_X[:, :-1].astype(np.uint32), np.transpose(occ_mat_X[:, 1:].astype(np.uint32)))
+
 
 def get_nyi(occ_mat_X, occ_mat_Y):
-    return np.matmul(occ_mat_Y, occ_mat_X.transpose())
+    # TODO - make sure it is np.float64
+    return np.matmul(occ_mat_Y.astype(np.uint32), occ_mat_X.transpose().astype(np.uint32))
+
 
 def get_estimator(n_mat):
-    return np.divide(n_mat, np.matlib.repmat(np.sum(n_mat, 0), 1, n_mat.shape[1]))
+    # TODO - make sure it is np.float64
+    denom = repmat(np.sum(n_mat, axis=0)[np.newaxis, :], n_mat.shape[0], 1)
+    mask = denom == 0
+    denom[mask] = 1
+    res = np.divide(n_mat, denom)
+    res[mask] = 0
+    return res
+
+
+def sample(Ns, xvals, yvals, t, e, q):
+    """
+    sample sequences from the model .
+    : param Ns : a vector with desired sample lengths , a sample is generated per
+    entry in the vector , with corresponding length .
+    : param xvals : the possible values for x variables , ordered as in t , and e
+    : param yvals : the possible values for y variables , ordered as in e
+    : param t : the transition distributions of the model
+    : param e : the emission distributions of the model
+    : return : x , y - two iterables describing the sampled sequences .
+    """
+    seq_x = [''] * len(Ns)
+    seq_y = [''] * len(Ns)
+    for i, seq_len in enumerate(Ns):
+        seq_x[i], seq_y[i] = sample_seq(seq_len, xvals, yvals, t, e, q)
+    return seq_x, seq_y
+
+
+def sample_seq(seq_len, xvals, yvals, t, e, q):
+    # x1=sample type of first word from q
+    # sample y1=yvals(sample a word from e(:, x1)
+    # for rest of sentence:
+    #      sample xi from t(x(i-1),:)
+    #      sample yi like y1
+
+    xvlist = list(xvals)
+    yvlist = list(yvals)
+
+    def sample_y(i):
+        if np.sum(e[:, i]) != 1.0:
+            print (np.sum(e[:, i]))
+        return choice(a=yvlist, size=1, p=e[:, i])
+
+    def sample_newx(i):
+        if np.sum(t[:, i]) != 1.0:
+            print (np.sum(t[:, i]))
+        return np.where(multinomial(1, t[:, i]) == 1)[0][0]
+
+    seq_x = [''] * seq_len
+    seq_y = [''] * seq_len
+    xi = np.where(multinomial(1, pvals=q) == 1)[0][0]
+    seq_x[0] = xvlist[xi]
+    seq_y[0] = sample_y(xi)
+
+    for i in range(1, seq_len):
+        xi = sample_newx(xi)
+        seq_x[i] = xvlist[xi]
+        seq_y[i] = sample_y(xi)
+
+    return seq_x, seq_y

@@ -96,13 +96,13 @@ def sample_seq(seq_len, xvals, yvals, t, e, q):
     yvlist = list(yvals)
 
     def sample_y(i):
-        if np.sum(e[:, i]) != 1.0:
-            print (np.sum(e[:, i]))
+        # if np.sum(e[:, i]) != 1.0:
+        #     print (np.sum(e[:, i]))
         return choice(a=yvlist, size=1, p=e[:, i])
 
     def sample_newx(i):
-        if np.sum(t[:, i]) != 1.0:
-            print (np.sum(t[:, i]))
+        # if np.sum(t[:, i]) != 1.0:
+        #     print (np.sum(t[:, i]))
         return np.where(multinomial(1, t[:, i]) == 1)[0][0]
 
     seq_x = [''] * seq_len
@@ -117,3 +117,31 @@ def sample_seq(seq_len, xvals, yvals, t, e, q):
         seq_y[i] = sample_y(xi)
 
     return seq_x, seq_y
+
+
+def viterbi(y, suppx, suppy, t, e, q):
+    """
+    Calculate the maximum a - posteriori assignment of x ’s .
+    : param y : a sequence of words
+    : param suppx : the support of x ( what values it can attain )
+    : param t : the transition distributions of the model
+    : param e : the emission distributions of the model
+    : return : xhat , the most likely sequence of hidden states ( parts of speech ).
+    """
+    M, S = len(y), len(suppx)
+    yv = np.asarray(list(suppy))
+    v_mat = np.zeros((M, S, 2))
+    v_mat[0, :, 1] = np.multiply(q, e[np.where(yv == y[0])[0][0], :])
+
+    for tidx in range(1, M):
+        # calc row tidx
+        for j in range(S):
+            possible_values = np.asarray([v_mat[tidx - 1, i, 1] * t[i, j] * e[np.where(yv == y[tidx])[0][0], j] for i in range(S)])
+            v_mat[tidx, j, 0] = np.argmax(possible_values)
+            v_mat[tidx, j, 1] = possible_values[int(v_mat[tidx, j, 0])]
+    max_v_idx_cur = int(np.argmax(v_mat[-1, :, 1]))
+    x_hat = np.zeros((M,1))
+    for i in range(M):
+        x_hat[-i-1] = max_v_idx_cur
+        max_v_idx_cur = int(v_mat[M-1-i, max_v_idx_cur, 0])
+    return np.asarray(list(suppx))[x_hat.astype(np.int32)][:,0]

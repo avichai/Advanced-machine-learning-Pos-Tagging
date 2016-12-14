@@ -1,0 +1,4 @@
+# TODO's
+# Underflow in viterbi (work in logspace)?
+# Memory error on to much data (break to block matrices, word with padded indices matrices)
+# nested for loops ion viterbi

@@ -147,7 +147,7 @@ def viterbi_non_general(y, suppx, suppy, t, e, q):
     return np.asarray(list(suppx))[x_hat.astype(np.int32)][:,0]
 
 
-def viterbi(y , suppx , suppy, phi , w):
+def viterbi(y , suppx , suppy, phi, w):
     """
     Calculate the assignment of x that obtains the maximum log - linear score .
     : param y : a sequence of words
@@ -162,14 +162,14 @@ def viterbi(y , suppx , suppy, phi , w):
     M, S = len(y), len(suppx)
     yv = np.asarray(list(suppy))
     v_mat = np.zeros((M, S, 2))
-    v_mat[0, :, 1] = normalize_row(np.exp(np.asarray([phi(xt, 1, y, 0) for xt in S])))
+    v_mat[0, :, 1] = normalize_row(np.exp(np.asarray([np.dot(w, phi(xt, 1, y, 0)) for xt in S])))
 
     for tidx in range(1, M):
         # calc row tidx
         phi_trans = np.zeros((S,S))  # Every row is a specific x(t-1), every column is a choice for x(t)
 
         for xt in range(S):
-            phi_trans[:, xt] = np.exp(np.asarray([phi(xt, xprev, y, tidx) for xprev in range(S)]))
+            phi_trans[:, xt] = np.exp(np.asarray([np.dot(w, phi(xt, xprev, y, tidx)) for xprev in range(S)]))
 
         phi_trans = phi_trans / phi_trans.sum(axis=1)[:, np.newaxis]
         phi_trans = phi_trans * v_mat[tidx - 1, :, 1][:, np.newaxis]
@@ -184,3 +184,27 @@ def viterbi(y , suppx , suppy, phi , w):
         x_hat[-i - 1] = max_v_idx_cur
         max_v_idx_cur = int(v_mat[M - 1 - i, max_v_idx_cur, 0])
     return np.asarray(list(suppx))[x_hat.astype(np.int32)][:, 0]
+
+
+def perceptron(X, Y, suppx, suppy, phi, w0, rate):
+    """
+    Find w that maximizes the log - linear score
+    : param X : POS tags for sentences ( iterable of lists of elements in suppx )
+    : param Y : words in respective sentences ( iterable of lists of words in suppy )
+    : param suppx : the support of x ( what values it can attain )
+    : param suppy : the support of y ( what values it can attain )
+    : param phi : a mapping from ( None | x_1 , x_2 , y_2 to indices of w
+    : param w0 : initial model
+    : param rate : rate of learning
+    : return : w , a weight vector for the log - linear model features .
+    """
+    def calc_change_weight(x_hat, i): np.sum([phi(X[i][t], X[i][t-1], Y[i], t) - phi(x_hat[t], x_hat[t-1], Y[i], t) for t in len(X[i])])
+
+    N = len(X)
+    w = np.zeros(N+1)
+    w[0] = w0
+    for i in range(N):
+        x_hat = viterbi(Y[i], suppx, suppy, phi, w[i])
+        w[i+1] += rate * calc_change_weight(x_hat, i)
+
+    return np.mean(w[1:])

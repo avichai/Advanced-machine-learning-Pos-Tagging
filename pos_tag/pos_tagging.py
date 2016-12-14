@@ -119,7 +119,7 @@ def sample_seq(seq_len, xvals, yvals, t, e, q):
     return seq_x, seq_y
 
 
-def viterbi(y, suppx, suppy, t, e, q):
+def viterbi_non_general(y, suppx, suppy, t, e, q):
     """
     Calculate the maximum a - posteriori assignment of x ’s .
     : param y : a sequence of words
@@ -145,3 +145,42 @@ def viterbi(y, suppx, suppy, t, e, q):
         x_hat[-i-1] = max_v_idx_cur
         max_v_idx_cur = int(v_mat[M-1-i, max_v_idx_cur, 0])
     return np.asarray(list(suppx))[x_hat.astype(np.int32)][:,0]
+
+
+def viterbi(y , suppx , suppy, phi , w):
+    """
+    Calculate the assignment of x that obtains the maximum log - linear score .
+    : param y : a sequence of words
+    : param suppx : the support of x ( what values it can attain )
+    : param phi : a mapping from ( x_t , x_ { t +1} , y_ {1.. t +1} to indices of w
+    : param w : the linear model
+    : return : xhat , the most likely sequence of hidden states ( parts of speech ).
+    """
+
+    def normalize_row(r): return r / r.sum()
+
+    M, S = len(y), len(suppx)
+    yv = np.asarray(list(suppy))
+    v_mat = np.zeros((M, S, 2))
+    v_mat[0, :, 1] = normalize_row(np.exp(np.asarray([phi(xt, 1, y, 0) for xt in S])))
+
+    for tidx in range(1, M):
+        # calc row tidx
+        phi_trans = np.zeros((S,S))  # Every row is a specific x(t-1), every column is a choice for x(t)
+
+        for xt in range(S):
+            phi_trans[:, xt] = np.exp(np.asarray([phi(xt, xprev, y, tidx) for xprev in range(S)]))
+
+        phi_trans = phi_trans / phi_trans.sum(axis=1)[:, np.newaxis]
+        phi_trans = phi_trans * v_mat[tidx - 1, :, 1][:, np.newaxis]
+
+        v_mat[tidx, :, 0] = phi_trans.argmax(axis=0)
+        # v_mat[tidx, :, 1] = phi_trans[v_mat[tidx, :, 0].astype(np.int32)]
+        v_mat[tidx, :, 1] = phi_trans.max(axis=0)
+
+    max_v_idx_cur = int(np.argmax(v_mat[-1, :, 1]))
+    x_hat = np.zeros((M, 1))
+    for i in range(M):
+        x_hat[-i - 1] = max_v_idx_cur
+        max_v_idx_cur = int(v_mat[M - 1 - i, max_v_idx_cur, 0])
+    return np.asarray(list(suppx))[x_hat.astype(np.int32)][:, 0]

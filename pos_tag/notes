@@ -2,3 +2,13 @@
 # Underflow in viterbi (work in logspace)?
 # Memory error on to much data (break to block matrices, word with padded indices matrices)
 # nested for loops ion viterbi
+# Probabilities sometimes doesn't add up to exactly 1
+$ Make sure list on dictionary return in the correct order
+
+# Phi is not efficient (change to shorter vector) - return indices vec and use on w instead of dot product
+
+# TODO - take care of dict->list
+# TODO - take care of phi vec space
+# TODO - Make sure NGV and GV Has the same results and like the expected results
+# TODO - Check perceptron on other feature spaces
+# TODO - Start writing the article

@@ -48,23 +48,22 @@ def main():
     """
 
     # Constants
-    NUM_REPITIONS = 2
+    NUM_REPITIONS = 5
     TRAIN_DATA_PERCNTAGES = [0.1, 0.25, 0.5, 0.9]
     zippth = '../data_split.gz'
-    SAMPLE_SIZE_FOR_ERROR = 20
+    SAMPLE_SIZE_FOR_ERROR = 50
 
-    def plot_results(title, mat):
+    def plot_results(title, mat, ax):
         """
         Plot specific result on a subplot
         :param title: subplot title
         :param mat: The matrix with the results - each row will be plotted as a single line
         """
+        ax.title.set_text(title)
         for i in range(len(TRAIN_DATA_PERCNTAGES)):
-            plt.title(title)
-            plt.plot(range(1, NUM_REPITIONS + 1), mat[i, :], '-*', label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
-            plt.axes()
-            plt.hold(True)
-        plt.legend()
+            ax.plot(range(1, NUM_REPITIONS + 1), mat[i, :], '-*', label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
+            ax.hold(True)
+        ax.legend()
 
     # init results structs
     results_time = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
@@ -122,18 +121,18 @@ def main():
 
     f = plt.figure()
     f.suptitle("Performance as a function of training data size")
-    plt.subplot(3,2,1)
-    plot_results('Sample Number Vs. Train Time (Per sample size)', results_time)
-    plt.subplot(3,2,3)
-    plot_results('Sample Number Vs. Train LogLikelihood (Per sample size)', results_train_LL)
-    plt.subplot(3,2,5)
-    plot_results('Sample Number Vs. Test LogLikelihood (Per sample size)', results_test_LL)
-    plt.subplot(3,2,2)
-    plot_results('Sample Number Vs. Sampled Error (Per sample size)', results_sampled_err)
-    plt.subplot(3,2,4)
-    plot_results('Sample Number Vs. Train Error (Per sample size)', results_train_err)
-    plt.subplot(3,2,6)
-    plot_results('Sample Number Vs. Test Error (Per sample size)', results_test_err)
+    ax = plt.subplot(3,2,1)
+    plot_results('Sample Number Vs. Train Time (Per sample size)', results_time, ax)
+    ax = plt.subplot(3,2,3)
+    plot_results('Sample Number Vs. Train LogLikelihood (Per sample size)', results_train_LL, ax)
+    ax = plt.subplot(3,2,5)
+    plot_results('Sample Number Vs. Test LogLikelihood (Per sample size)', results_test_LL, ax)
+    ax = plt.subplot(3,2,2)
+    plot_results('Sample Number Vs. Sampled Error (Per sample size)', results_sampled_err, ax)
+    ax = plt.subplot(3,2,4)
+    plot_results('Sample Number Vs. Train Error (Per sample size)', results_train_err, ax)
+    ax = plt.subplot(3,2,6)
+    plot_results('Sample Number Vs. Test Error (Per sample size)', results_test_err, ax)
     plt.show(block=True)
 
 

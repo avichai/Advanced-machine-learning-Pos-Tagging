@@ -26,9 +26,10 @@ def main():
     This function is designed to test the MLE. In order to do so TODO
     :return:
     """
-    NUM_REPITIONS = 5
-    TRAIN_DATA_PERCNTAGES = [0.1, 0.25, 0.5, 0.9]
+    NUM_REPITIONS = 2
+    TRAIN_DATA_PERCNTAGES = [0.1, 0.2] #[0.1, 0.25, 0.5, 0.9]
     zippth = '../data_split.gz'
+    SAMPLE_SIZE_FOR_ERROR = 5
 
     # init results structs
     results_time = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
@@ -56,6 +57,8 @@ def main():
             Y_test = [d[1] for d in data[rep]['test']]
             trainX = np.asarray(X_train)[:int(len(X_train)*perc*10.0/9)]
             trainY = np.asarray(Y_train)[:int(len(Y_train)*perc*10.0/9)]
+            testX = np.asarray(X_test)
+            testY = np.asarray(Y_test)
 
             # Estimate ML and get LL
             start_time = time()
@@ -69,42 +72,64 @@ def main():
 
 
             # Sample data using MLE
-            sentencesx, sentencesy = pos_tagging.sample(np.random.randint(low=4, high=40, size=100),
+            sentencesx, sentencesy = pos_tagging.sample(np.random.randint(low=4, high=40, size=SAMPLE_SIZE_FOR_ERROR),
                                                         xvlist, yvlist, t_hat, e_hat, q_hat)
 
             # Test inference (Against sampled data, train data, test data)
             simple_phi, D = phi_models.get_hmm_phi(xvDict, yvDict)
             simple_w = phi_models.get_hmm_w_vec(t_hat, e_hat, q_hat, xvDict, yvDict)
 
+            train_rnd_ind = np.random.choice(a=np.arange(len(trainX)), size=SAMPLE_SIZE_FOR_ERROR)
+            test_rnd_ind = np.random.choice(a=np.arange(len(X_test)), size=SAMPLE_SIZE_FOR_ERROR)
             results_sampled_err[pidx, rep] = get_inference_err(sentencesx, sentencesy, xvlist, simple_phi, simple_w)
-            results_train_err[pidx, rep] = get_inference_err(trainX, trainY, xvlist, simple_phi, simple_w)
-            results_test_err[pidx, rep] = get_inference_err(X_test, Y_test, xvlist, simple_phi, simple_w)
+            results_train_err[pidx, rep] = get_inference_err(trainX[train_rnd_ind], trainY[train_rnd_ind], xvlist, simple_phi, simple_w)
+            results_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind], testY[test_rnd_ind], xvlist, simple_phi, simple_w)
 
-            # t = time()
-            # final_w = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, np.zeros(len(simple_w)), 0.05)
-            # print("perceptron took: {0}".format(time() - t))
-            for i in range(len(sentencesx)):
-                sentencesx_hat = pos_tagging.viterbi_non_general(sentencesy[i], xvlist, yvDict, t_hat, e_hat, q_hat)
+    f = plt.figure()
+    f.suptitle("Performance as a function of training data size")
 
-                # sentencesx_hat3 = pos_tagging.viterbi(sentencesy[i], xvlist, simple_phi, final_w)
-                print('Expected: {0},\nNGV:      {1}\nGV:       {2}\nPERC:     {3}\n'.format(sentencesx[i], sentencesx_hat.tolist(),
-                                                                              sentencesx_hat2.tolist(), []))
-            # print("Mean diff between w: {0}".format(np.mean(np.abs(simple_w-final_w))))
-
-
-    plt.figure()
-    plt.subplot(3,1,1)
+    plt.subplot(3,2,1)
+    plt.title('Sample Number Vs. Train Time (Per sample size)')
     for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.plot(results_time[i,:])
+        plt.plot(range(1, NUM_REPITIONS+1), results_time[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
         plt.hold(True)
-    plt.subplot(3, 1, 2)
+    plt.legend()
+
+    plt.subplot(3, 2, 3)
     for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.plot(results_train_LL[i, :])
+        plt.title('Sample Number Vs. Train LogLikelihood (Per sample size)')
+        plt.plot(range(1, NUM_REPITIONS+1), results_train_LL[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
         plt.hold(True)
-    plt.subplot(3, 1, 3)
+    plt.legend()
+
+    plt.subplot(3, 2, 5)
     for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.plot(results_test_LL[i, :])
+        plt.title('Sample Number Vs. Test LogLikelihood (Per sample size)')
+        plt.plot(range(1, NUM_REPITIONS+1), results_test_LL[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
         plt.hold(True)
+    plt.legend()
+
+    plt.subplot(3, 2, 2)
+    for i in range(len(TRAIN_DATA_PERCNTAGES)):
+        plt.title('Sample Number Vs. Sampled Error (Per sample size)')
+        plt.plot(range(1, NUM_REPITIONS+1), results_train_err[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
+        plt.hold(True)
+    plt.legend()
+
+    plt.subplot(3, 2, 4)
+    for i in range(len(TRAIN_DATA_PERCNTAGES)):
+        plt.title('Sample Number Vs. Train Error (Per sample size)')
+        plt.plot(range(1, NUM_REPITIONS+1), results_train_err[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
+        plt.hold(True)
+    plt.legend()
+
+    plt.subplot(3, 2, 6)
+    for i in range(len(TRAIN_DATA_PERCNTAGES)):
+        plt.title('Sample Number Vs. Test Error (Per sample size)')
+        plt.plot(range(1, NUM_REPITIONS+1), results_test_err[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
+        plt.hold(True)
+    plt.legend()
+
     plt.show(block=True)
 
 

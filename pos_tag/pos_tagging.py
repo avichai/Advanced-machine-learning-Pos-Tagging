@@ -161,15 +161,15 @@ def viterbi(y, suppxList, phi, w):
 
     from time import time
     t = time()
+    phi_trans = np.zeros((S, S))  # Every row is a specific x(t-1), every column is a choice for x(t)
     for tidx in range(1, M):
         # calc row tidx
-        phi_trans = np.zeros((S,S))  # Every row is a specific x(t-1), every column is a choice for x(t)
+        phi_trans[:] = 0  # Every row is a specific x(t-1), every column is a choice for x(t)
 
         for idx, xt in enumerate(suppxList):
             phi_trans[:, idx] = np.exp(np.asarray([np.sum(w[phi(xt, xprev, y, tidx)]) for xprev in suppxList]))
 
-        phi_trans = phi_trans / phi_trans.sum(axis=1)[:, np.newaxis]
-        phi_trans = phi_trans * v_mat[tidx - 1, :, 1][:, np.newaxis]
+        phi_trans = phi_trans * (v_mat[tidx - 1, :, 1] / phi_trans.sum(axis=1))[:, np.newaxis]
 
         v_mat[tidx, :, 0] = phi_trans.argmax(axis=0)
         v_mat[tidx, :, 1] = phi_trans.max(axis=0)
@@ -201,7 +201,7 @@ def perceptron(X, Y, suppxList, phi, w0, rate):
 
     N = len(X)
     w = w0.copy()
-    for i in range(500):
+    for i in range(300):
         x_hat = viterbi(Y[i], suppxList, phi, w)
         update_w(x_hat, i, w)
 

@@ -101,7 +101,7 @@ def test_mle():
         simple_phi, simple_w = get_simple_phi_and_w(t_hat, e_hat, q_hat, xv, yv)
 
         t = time()
-        final_w = pos_tagging.perceptron(sampledX, sampledY, xvlist, simple_phi, np.zeros(len(simple_w)), 0.5)
+        final_w = pos_tagging.perceptron(sampledX, sampledY, xvlist, simple_phi, np.zeros(len(simple_w)), 0.05)
         print("perceptron took: {0}".format(time() - t))
         for i in range(len(sentencesx)):
             sentencesx_hat = pos_tagging.viterbi_non_general(sentencesy[i], xvlist, yv, t_hat, e_hat, q_hat)

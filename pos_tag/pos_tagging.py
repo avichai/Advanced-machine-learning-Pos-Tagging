@@ -84,15 +84,12 @@ def sample(Ns, xvals, yvals, t, e, q):
     return seq_x, seq_y
 
 
-def sample_seq(seq_len, xvals, yvals, t, e, q):
+def sample_seq(seq_len, xvlist, yvlist, t, e, q):
     # x1=sample type of first word from q
     # sample y1=yvals(sample a word from e(:, x1)
     # for rest of sentence:
     #      sample xi from t(x(i-1),:)
     #      sample yi like y1
-
-    xvlist = list(xvals)
-    yvlist = list(yvals)
 
     def sample_y(i):
         # if np.sum(e[:, i]) != 1.0:
@@ -118,7 +115,7 @@ def sample_seq(seq_len, xvals, yvals, t, e, q):
     return seq_x, seq_y
 
 
-def viterbi_non_general(y, suppx, suppy, t, e, q):
+def viterbi_non_general(y, suppxList, suppyDict, t, e, q):
     """
     Calculate the maximum a - posteriori assignment of x ’s .
     : param y : a sequence of words
@@ -127,14 +124,14 @@ def viterbi_non_general(y, suppx, suppy, t, e, q):
     : param e : the emission distributions of the model
     : return : xhat , the most likely sequence of hidden states ( parts of speech ).
     """
-    M, S = len(y), len(suppx)
+    M, S = len(y), len(suppxList)
     v_mat = np.zeros((M, S, 2))
-    v_mat[0, :, 1] = np.multiply(q, e[suppy[y[0]], :])
+    v_mat[0, :, 1] = np.multiply(q, e[suppyDict[y[0]], :])
 
     for tidx in range(1, M):
         # calc row tidx
         for j in range(S):
-            possible_values = np.asarray([v_mat[tidx - 1, i, 1] * t[i, j] * e[suppy[y[tidx]], j] for i in range(S)])
+            possible_values = np.asarray([v_mat[tidx - 1, i, 1] * t[i, j] * e[suppyDict[y[tidx]], j] for i in range(S)])
             v_mat[tidx, j, 0] = np.argmax(possible_values)
             v_mat[tidx, j, 1] = possible_values[int(v_mat[tidx, j, 0])]
     max_v_idx_cur = int(np.argmax(v_mat[-1, :, 1]))
@@ -142,10 +139,10 @@ def viterbi_non_general(y, suppx, suppy, t, e, q):
     for i in range(M):
         x_hat[-i-1] = max_v_idx_cur
         max_v_idx_cur = int(v_mat[M-1-i, max_v_idx_cur, 0])
-    return np.asarray(list(suppx))[x_hat.astype(np.int32)][:,0]
+    return np.asarray(suppxList)[x_hat.astype(np.int32)][:,0]
 
 
-def viterbi(y , suppx , phi, w):
+def viterbi(y, suppxList, phi, w):
     """
     Calculate the assignment of x that obtains the maximum log - linear score .
     : param y : a sequence of words
@@ -157,10 +154,10 @@ def viterbi(y , suppx , phi, w):
 
     def normalize_row(r): return r / r.sum()
 
-    M, S = len(y), len(suppx)
-    # yv = np.asarray(list(suppy))
+    M, S = len(y), len(suppxList)
+
     v_mat = np.zeros((M, S, 2))
-    v_mat[0, :, 1] = normalize_row(np.exp(np.asarray([np.dot(w, phi(xt, 'XXX', y, 0)) for xt in suppx.keys()])))
+    v_mat[0, :, 1] = normalize_row(np.exp(np.asarray([np.sum(w[phi(xt, 'XXX', y, 0)]) for xt in suppxList])))
 
     from time import time
     t = time()
@@ -168,8 +165,8 @@ def viterbi(y , suppx , phi, w):
         # calc row tidx
         phi_trans = np.zeros((S,S))  # Every row is a specific x(t-1), every column is a choice for x(t)
 
-        for xt in suppx.keys():
-            phi_trans[:, suppx[xt]] = np.exp(np.asarray([np.dot(w, phi(xt, xprev, y, tidx)) for xprev in suppx.keys()]))
+        for idx, xt in enumerate(suppxList):
+            phi_trans[:, idx] = np.exp(np.asarray([np.sum(w[phi(xt, xprev, y, tidx)]) for xprev in suppxList]))
 
         phi_trans = phi_trans / phi_trans.sum(axis=1)[:, np.newaxis]
         phi_trans = phi_trans * v_mat[tidx - 1, :, 1][:, np.newaxis]
@@ -182,7 +179,7 @@ def viterbi(y , suppx , phi, w):
     for i in range(M):
         x_hat[-i - 1] = max_v_idx_cur
         max_v_idx_cur = int(v_mat[M - 1 - i, max_v_idx_cur, 0])
-    return np.asarray(list(suppx))[x_hat.astype(np.int32)][:, 0]
+    return np.asarray(suppxList)[x_hat.astype(np.int32)][:, 0]
 
 
 def perceptron(X, Y, suppx, suppy, phi, w0, rate):

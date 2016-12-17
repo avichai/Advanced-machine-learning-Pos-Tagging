@@ -47,16 +47,20 @@ def get_simple_phi_and_w(t, e, q, suppX, suppY):
         :param t:
         :return:
         '''
-        feature_vec = np.zeros(D)
+        # feature_vec = np.zeros(D)
+        indices_vec = [0]*2
         xt_idx = suppX[xt]
         yidx = suppY[y[t]]
         if t == 0:
-            feature_vec[xt_idx] = 1
+            indices_vec[0] = xt_idx
+            # feature_vec[xt_idx] = 1
         else:
             xprev_idx = suppX[xprev]
-            feature_vec[S + xprev_idx*S + xt_idx] = 1
-        feature_vec[S+S*S+yidx*S+xt_idx] = 1
-        return feature_vec
+            # feature_vec[S + xprev_idx*S + xt_idx] = 1
+            indices_vec[0] = S + xprev_idx*S + xt_idx
+        indices_vec[1] = S+S*S+yidx*S+xt_idx
+        # feature_vec[S+S*S+yidx*S+xt_idx] = 1
+        return indices_vec
 
     return simple_phi, w
 
@@ -73,6 +77,12 @@ def test_mle():
         #     t_hat_te, e_hat_te, q_hat_te = pickle.load(fid)
         xv = {x: i for i,x in enumerate(sample.xv)}
         yv = {y: i for i,y in enumerate(sample.yv)}
+        xvlist, yvlist = [''] * len(xv),  [''] * len(yv)
+        for k, v in xv.items():
+            xvlist[v] = k
+        for k, v in yv.items():
+            yvlist[v] = k
+
         t_hat, e_hat, q_hat = pos_tagging.mle(sample.X[:int(len(sample.X) * perc)],
                                               sample.Y[:int(len(sample.Y) * perc)], xv, yv)
 
@@ -83,14 +93,14 @@ def test_mle():
         #     raise Exception("T")
         # if not np.all(e_hat == e_hat_te):
         #     raise Exception("E")
-        sentencesx, sentencesy = pos_tagging.sample([10, 8, 15, 7,10,4,8,20,25], xv, yv, t_hat, e_hat, q_hat)
+        sentencesx, sentencesy = pos_tagging.sample([10, 8, 15, 7,10,4,8,20,25], xvlist, yvlist, t_hat, e_hat, q_hat)
         # for x,y in zip(sentencesx, sentencesy):
         #     print("X:{0}\nY:{1}".format(x,[word for word in y]))
         simple_phi, simple_w = get_simple_phi_and_w(t_hat, e_hat, q_hat, xv, yv)
         for i in range(len(sentencesx)):
-            sentencesx_hat = pos_tagging.viterbi_non_general(sentencesy[i], xv, yv, t_hat, e_hat, q_hat)
-            sentencesx_hat2 = pos_tagging.viterbi(sentencesy[i], xv, simple_phi, simple_w)
-            print('Expected: {0},\nNGV:   {1}\nGV:      {2}\n'.format(sentencesx[i], sentencesx_hat.tolist(), sentencesx_hat2.tolist()))
+            sentencesx_hat = pos_tagging.viterbi_non_general(sentencesy[i], xvlist, yv, t_hat, e_hat, q_hat)
+            sentencesx_hat2 = pos_tagging.viterbi(sentencesy[i], xvlist, simple_phi, simple_w)
+            print('Expected: {0},\nNGV:      {1}\nGV:       {2}\n'.format(sentencesx[i], sentencesx_hat.tolist(), sentencesx_hat2.tolist()))
 
 
 

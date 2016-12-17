@@ -2,8 +2,43 @@ import numpy as np
 from numpy.matlib import repmat as repmat
 from numpy.random import multinomial, choice
 
-MAX_OCC_MAT_SIZE = 0.25e9  # Maximum allowed matrix elements
+EPS = 1E-50
 
+def log_likelihood(q, t, e, ni, nij, nyi):
+    # a = np.sum(np.multiply(ni, np.log(q + EPS))) + np.sum(np.multiply(nij, np.log(t + EPS))) + np.sum(np.multiply(nyi, np.log(e + EPS)))
+    return np.dot(ni, np.log(q+EPS)) + np.dot(nij.flatten(), np.log(t+EPS).flatten()) + np.dot(nyi.flatten(), np.log(e+EPS).flatten())
+
+
+def get_ni(X, xvals):
+    prefix_X = np.asarray([seq[0] for seq in X])
+    q = np.zeros(len(xvals))
+    for x in prefix_X:
+        q[xvals[x]] += 1
+    q = q[:len(xvals)-1]
+    return q
+
+def get_ni_nij_nyi(x, y, xv, yv):
+    PADDING_CONST = '##$$##'
+    # TODO - make sure PADDING_CONST not in xv or yv
+    flatten_X, flatten_Y = flatten_list(x, PADDING_CONST), flatten_list(y, PADDING_CONST)
+    M = len(flatten_Y)
+    S, T = len(xv), len(yv)
+    nij = np.zeros((S + 1, S + 1))
+    nyi = np.zeros((T + 1, S + 1))
+    xv[PADDING_CONST] = S
+    yv[PADDING_CONST] = T
+    for i in range(M - 1):
+        nij[xv[flatten_X[i]], xv[flatten_X[i + 1]]] += 1
+        nyi[yv[flatten_Y[i]], xv[flatten_X[i]]] += 1
+        # Note that we don't go over the last pair of y and x, but its a padding from the flatten function either way
+
+    nij = nij[:S, :S]
+    nyi = nyi[:T, :S]
+    ni = get_ni(x, xv)
+
+    del xv[PADDING_CONST]
+    del yv[PADDING_CONST]
+    return ni, nij, nyi
 
 def mle(x, y, xv, yv):
     """
@@ -20,37 +55,11 @@ def mle(x, y, xv, yv):
             e . shape = (| val ( X )| ,| val ( Y )|)
             q . TODO
     """
-    PADDING_CONST = '##$$##'
-    # TODO - make sure PADDING_CONST not in xv or yv
-    flatten_X, flatten_Y = flatten_list(x, PADDING_CONST), flatten_list(y, PADDING_CONST)
-    M = len(flatten_Y)
-    S, T = len(xv), len(yv)
-    nij = np.zeros((S+1,S+1))
-    nyi = np.zeros((T+1,S+1))
-    xv[PADDING_CONST] = S
-    yv[PADDING_CONST] = T
-    for i in range(M-1):
-        nij[xv[flatten_X[i]], xv[flatten_X[i+1]]] += 1
-        nyi[yv[flatten_Y[i]], xv[flatten_X[i]]] += 1
-        # Note that we don't go over the last pair of y and x, but its a padding from the flatten function either way
-
-    nij = nij[:S,:S]
-    nyi = nyi[:T,:S]
+    ni, nij, nyi = get_ni_nij_nyi(x, y, xv, yv)
     t_hat = get_estimator(nij)
     e_hat = get_estimator(nyi)
-    q_hat = get_q_hat(x, xv)
-    del xv[PADDING_CONST]
-    del yv[PADDING_CONST]
-    return t_hat, e_hat, q_hat
-
-
-def get_q_hat(X, xvals):
-    prefix_X = np.asarray([seq[0] for seq in X])
-    q = np.zeros(len(xvals))
-    for x in prefix_X:
-        q[xvals[x]] += 1
-    q = q[:len(xvals)-1]
-    return q / q.sum()
+    q_hat = ni / ni.sum()
+    return t_hat, e_hat, q_hat, log_likelihood(q_hat, t_hat, e_hat, ni, nij, nyi)
 
 
 def flatten_list(lst, PADDING_CONST=''):
@@ -201,7 +210,7 @@ def perceptron(X, Y, suppxList, phi, w0, rate):
 
     N = len(X)
     w = w0.copy()
-    for i in range(300):
+    for i in range(10):
         x_hat = viterbi(Y[i], suppxList, phi, w)
         update_w(x_hat, i, w)
 

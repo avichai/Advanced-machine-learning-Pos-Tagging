@@ -5,8 +5,8 @@ from numpy.random import multinomial, choice
 EPS = 1E-50
 
 def log_likelihood(q, t, e, ni, nij, nyi):
-    # a = np.sum(np.multiply(ni, np.log(q + EPS))) + np.sum(np.multiply(nij, np.log(t + EPS))) + np.sum(np.multiply(nyi, np.log(e + EPS)))
-    return np.dot(ni, np.log(q+EPS)) + np.dot(nij.flatten(), np.log(t+EPS).flatten()) + np.dot(nyi.flatten(), np.log(e+EPS).flatten())
+    return (np.dot(ni, np.log(q+EPS)) + np.dot(nij.flatten(), np.log(t+EPS).flatten()) +
+            np.dot(nyi.flatten(), np.log(e+EPS).flatten())) / np.sum(ni)
 
 
 def get_ni(X, xvals):

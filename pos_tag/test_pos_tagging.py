@@ -27,9 +27,9 @@ def main():
     :return:
     """
     NUM_REPITIONS = 2
-    TRAIN_DATA_PERCNTAGES = [0.1, 0.2] #[0.1, 0.25, 0.5, 0.9]
+    TRAIN_DATA_PERCNTAGES = [0.1, 0.25, 0.5, 0.9]
     zippth = '../data_split.gz'
-    SAMPLE_SIZE_FOR_ERROR = 5
+    SAMPLE_SIZE_FOR_ERROR = 20
 
     # init results structs
     results_time = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
@@ -112,7 +112,7 @@ def main():
     plt.subplot(3, 2, 2)
     for i in range(len(TRAIN_DATA_PERCNTAGES)):
         plt.title('Sample Number Vs. Sampled Error (Per sample size)')
-        plt.plot(range(1, NUM_REPITIONS+1), results_train_err[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
+        plt.plot(range(1, NUM_REPITIONS+1), results_sampled_err[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
         plt.hold(True)
     plt.legend()
 

@@ -35,7 +35,7 @@ def get_simple_phi_and_w(t, e, q, suppX, suppY):
     w[S+S*S:] = np.log(e.flatten()+EPS)
 
     def simple_phi(xt, xprev, y, t):
-        '''
+        """
         S is the number of states. T is the number of possible words.
         q is a 1 by S vector, t is a S by S matrix, e is a T by S matrix
         Phi(xt, xprev, y, t) has d entries:
@@ -47,7 +47,7 @@ def get_simple_phi_and_w(t, e, q, suppX, suppY):
         :param y:
         :param t:
         :return:
-        '''
+        """
         # feature_vec = np.zeros(D)
         indices_vec = [0]*2
         xt_idx = suppX[xt]

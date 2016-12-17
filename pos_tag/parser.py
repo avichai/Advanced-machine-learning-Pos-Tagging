@@ -27,7 +27,7 @@ def sentence_iterator(gzip_file, max_sentences=sys.maxsize):
 
 
 def collect_sets(gzip_filename, k=2, n=1, max_sentences=sys.maxsize):
-    '''
+    """
     returns a collection of test and train sets as requested. If only one set is requested (n=1)
     then the set list is redundant and you can access the single set directly. See below.
     
@@ -47,7 +47,7 @@ def collect_sets(gzip_filename, k=2, n=1, max_sentences=sys.maxsize):
         # data['train'][1][0] - a list of POS tags for the second sentence
         # data['train'][1][1][4] - the 5th word in the 2nd sentence of the train set
         # data['train'][1][1][1][4] - (If n>=2) the 5th word in the 2nd sentence of the 2nd training set
-    '''
+    """
     sets = [{'train':[], 'test':[] } for _ in range(n)]
     xvals, yvals = set([]), set([])
     for sentence in sentence_iterator(gzip_filename, max_sentences=max_sentences):

@@ -3,6 +3,12 @@
 # nested for loops in viterbi
 # Probabilities sometimes doesn't add up to exactly 1
 # MLE LL doesn't make sense
+# do we need to normalize the log likelihood?
+# do we need to be locally normalized in veterbi
 
 # TODO - Check perceptron on other feature spaces
 # TODO - Start writing the article
+# TODO delete redundant prints
+# TODO organize graphs
+
+# Line length

@@ -6,6 +6,11 @@ from time import time
 import matplotlib.pyplot as plt
 
 def set2DictAndList(words_set):
+    """
+    create word dictionary and word list.
+    :param words_set: a set of words.
+    :return: word dictionary and word list.
+    """
     wordsDict = {x: i for i, x in enumerate(words_set)}
     wordslist = [''] * len(wordsDict)
     for k, v in wordsDict.items():
@@ -13,6 +18,15 @@ def set2DictAndList(words_set):
     return wordsDict, wordslist
 
 def get_inference_err(sentencesx, sentencesy, xvlist, phi, w):
+    """
+    get the inference error of all sentences that were given.
+    :param sentencesx: list of POS divided by sentences
+    :param sentencesy: list of words divided by sentences
+    :param xvlist: the possible values for x variables , ordered as in t , and e ( Dict - see MLE)
+    :param phi: the possible values for y variables , ordered as in e ( Dict - see MLE)
+    :param w: the weights.
+    :return: the inference error of all sentences that were given.
+    """
     correct = 0
     total_wrods = 0
     for sentx, senty in zip(sentencesx, sentencesy):
@@ -21,15 +35,36 @@ def get_inference_err(sentencesx, sentencesy, xvlist, phi, w):
         correct += np.count_nonzero(np.asarray(sentx) == np.asarray(sentencesx_hat))
     return 1 - correct / float(total_wrods)
 
+
+
+
+
 def main():
     """
-    This function is designed to test the MLE. In order to do so TODO
-    :return:
+    This function is designed to test out functions. In order to do so it runs ML estimation on several chunks
+    of data in different sizes, test infernce error (against train data, sampled data and test data).
+    Also, it tests different models using the perceptron in prder to learn. Evantually,
+    it plots the results for easier viweing.
     """
+
+    # Constants
     NUM_REPITIONS = 2
     TRAIN_DATA_PERCNTAGES = [0.1, 0.25, 0.5, 0.9]
     zippth = '../data_split.gz'
     SAMPLE_SIZE_FOR_ERROR = 20
+
+    def plot_results(title, mat):
+        """
+        Plot specific result on a subplot
+        :param title: subplot title
+        :param mat: The matrix with the results - each row will be plotted as a single line
+        """
+        for i in range(len(TRAIN_DATA_PERCNTAGES)):
+            plt.title(title)
+            plt.plot(range(1, NUM_REPITIONS + 1), mat[i, :], '-*', label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
+            plt.axes()
+            plt.hold(True)
+        plt.legend()
 
     # init results structs
     results_time = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
@@ -87,49 +122,18 @@ def main():
 
     f = plt.figure()
     f.suptitle("Performance as a function of training data size")
-
     plt.subplot(3,2,1)
-    plt.title('Sample Number Vs. Train Time (Per sample size)')
-    for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.plot(range(1, NUM_REPITIONS+1), results_time[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
-        plt.hold(True)
-    plt.legend()
-
-    plt.subplot(3, 2, 3)
-    for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.title('Sample Number Vs. Train LogLikelihood (Per sample size)')
-        plt.plot(range(1, NUM_REPITIONS+1), results_train_LL[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
-        plt.hold(True)
-    plt.legend()
-
-    plt.subplot(3, 2, 5)
-    for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.title('Sample Number Vs. Test LogLikelihood (Per sample size)')
-        plt.plot(range(1, NUM_REPITIONS+1), results_test_LL[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
-        plt.hold(True)
-    plt.legend()
-
-    plt.subplot(3, 2, 2)
-    for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.title('Sample Number Vs. Sampled Error (Per sample size)')
-        plt.plot(range(1, NUM_REPITIONS+1), results_sampled_err[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
-        plt.hold(True)
-    plt.legend()
-
-    plt.subplot(3, 2, 4)
-    for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.title('Sample Number Vs. Train Error (Per sample size)')
-        plt.plot(range(1, NUM_REPITIONS+1), results_train_err[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
-        plt.hold(True)
-    plt.legend()
-
-    plt.subplot(3, 2, 6)
-    for i in range(len(TRAIN_DATA_PERCNTAGES)):
-        plt.title('Sample Number Vs. Test Error (Per sample size)')
-        plt.plot(range(1, NUM_REPITIONS+1), results_test_err[i, :], label='SampleSize:{0}%'.format(TRAIN_DATA_PERCNTAGES[i]))
-        plt.hold(True)
-    plt.legend()
-
+    plot_results('Sample Number Vs. Train Time (Per sample size)', results_time)
+    plt.subplot(3,2,3)
+    plot_results('Sample Number Vs. Train LogLikelihood (Per sample size)', results_train_LL)
+    plt.subplot(3,2,5)
+    plot_results('Sample Number Vs. Test LogLikelihood (Per sample size)', results_test_LL)
+    plt.subplot(3,2,2)
+    plot_results('Sample Number Vs. Sampled Error (Per sample size)', results_sampled_err)
+    plt.subplot(3,2,4)
+    plot_results('Sample Number Vs. Train Error (Per sample size)', results_train_err)
+    plt.subplot(3,2,6)
+    plot_results('Sample Number Vs. Test Error (Per sample size)', results_test_err)
     plt.show(block=True)
 
 

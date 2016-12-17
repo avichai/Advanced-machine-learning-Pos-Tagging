@@ -15,7 +15,7 @@ def get_hmm_phi(suppX, suppY):
     S, T = len(suppX), len(suppY)
     D = S + S * S + T * S
     def simple_phi(xt, xprev, y, t):
-        '''
+        """
         S is the number of states. T is the number of possible words.
         q is a 1 by S vector, t is a S by S matrix, e is a T by S matrix
         Phi(xt, xprev, y, t) has d entries:
@@ -27,7 +27,7 @@ def get_hmm_phi(suppX, suppY):
         :param y:
         :param t:
         :return:
-        '''
+        """
         indices_vec = [0] * 2
         xt_idx = suppX[xt]
         yidx = suppY[y[t]]

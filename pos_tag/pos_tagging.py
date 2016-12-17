@@ -182,7 +182,7 @@ def viterbi(y, suppxList, phi, w):
     return np.asarray(suppxList)[x_hat.astype(np.int32)][:, 0]
 
 
-def perceptron(X, Y, suppx, suppy, phi, w0, rate):
+def perceptron(X, Y, suppxList, phi, w0, rate):
     """
     Find w that maximizes the log - linear score
     : param X : POS tags for sentences ( iterable of lists of elements in suppx )
@@ -194,13 +194,18 @@ def perceptron(X, Y, suppx, suppy, phi, w0, rate):
     : param rate : rate of learning
     : return : w , a weight vector for the log - linear model features .
     """
-    def calc_change_weight(x_hat, i): np.sum([phi(X[i][t], X[i][t-1], Y[i], t) - phi(x_hat[t], x_hat[t-1], Y[i], t) for t in len(X[i])])
+    def calc_change_weight(x_hat, i):
+        change_weight = np.zeros(len(w0))
+        for t in range(len(X[i])):
+            change_weight[phi(X[i][t], X[i][t-1], Y[i], t)] += 1
+            change_weight[phi(x_hat[t], x_hat[t-1], Y[i], t)] -= 1
+        return change_weight
 
     N = len(X)
-    w = np.zeros(N+1)
+    w = np.zeros(N+1, dtype=object)
     w[0] = w0
     for i in range(N):
-        x_hat = viterbi(Y[i], suppx, suppy, phi, w[i])
-        w[i+1] += rate * calc_change_weight(x_hat, i)
+        x_hat = viterbi(Y[i], suppxList, phi, w[i])
+        w[i+1] = w[i] + rate * calc_change_weight(x_hat, i)
 
     return np.mean(w[1:])

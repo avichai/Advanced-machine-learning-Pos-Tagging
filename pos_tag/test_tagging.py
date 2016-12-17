@@ -83,8 +83,10 @@ def test_mle():
         for k, v in yv.items():
             yvlist[v] = k
 
-        t_hat, e_hat, q_hat = pos_tagging.mle(sample.X[:int(len(sample.X) * perc)],
-                                              sample.Y[:int(len(sample.Y) * perc)], xv, yv)
+        sampledX = sample.X[:int(len(sample.X) * perc)]
+        sampledY = sample.Y[:int(len(sample.Y) * perc)]
+
+        t_hat, e_hat, q_hat = pos_tagging.mle(sampledX, sampledY, xv, yv)
 
         print(time() - t)
         # if not np.all(q_hat == q_hat_te):
@@ -97,11 +99,17 @@ def test_mle():
         # for x,y in zip(sentencesx, sentencesy):
         #     print("X:{0}\nY:{1}".format(x,[word for word in y]))
         simple_phi, simple_w = get_simple_phi_and_w(t_hat, e_hat, q_hat, xv, yv)
+
+        t = time()
+        final_w = pos_tagging.perceptron(sampledX, sampledY, xvlist, simple_phi, np.zeros(len(simple_w)), 0.01)
+        print("perceptron took: {0}".format(time() - t))
         for i in range(len(sentencesx)):
             sentencesx_hat = pos_tagging.viterbi_non_general(sentencesy[i], xvlist, yv, t_hat, e_hat, q_hat)
             sentencesx_hat2 = pos_tagging.viterbi(sentencesy[i], xvlist, simple_phi, simple_w)
-            print('Expected: {0},\nNGV:      {1}\nGV:       {2}\n'.format(sentencesx[i], sentencesx_hat.tolist(), sentencesx_hat2.tolist()))
-
+            sentencesx_hat3 = pos_tagging.viterbi(sentencesy[i], xvlist, simple_phi, final_w)
+            print('Expected: {0},\nNGV:      {1}\nGV:       {2}\nPERC:     {3}\n'.format(sentencesx[i], sentencesx_hat.tolist(),
+                                                                          sentencesx_hat2.tolist(), sentencesx_hat3.to_list()))
+        print("Mean diff between w: {0}".format(np.mean(np.abs(simple_w-final_w))))
 
 
 def main():

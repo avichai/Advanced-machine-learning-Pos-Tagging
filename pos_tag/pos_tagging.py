@@ -173,7 +173,7 @@ def viterbi(y, suppxList, phi, w):
 
         v_mat[tidx, :, 0] = phi_trans.argmax(axis=0)
         v_mat[tidx, :, 1] = phi_trans.max(axis=0)
-    print(time()-t)
+    print(str(M), time()-t)
     max_v_idx_cur = int(np.argmax(v_mat[-1, :, 1]))
     x_hat = np.zeros((M, 1))
     for i in range(M):
@@ -194,18 +194,15 @@ def perceptron(X, Y, suppxList, phi, w0, rate):
     : param rate : rate of learning
     : return : w , a weight vector for the log - linear model features .
     """
-    def calc_change_weight(x_hat, i):
-        change_weight = np.zeros(len(w0))
+    def update_w(x_hat, i, w):
         for t in range(len(X[i])):
-            change_weight[phi(X[i][t], X[i][t-1], Y[i], t)] += 1
-            change_weight[phi(x_hat[t], x_hat[t-1], Y[i], t)] -= 1
-        return change_weight
+            w[phi(X[i][t], X[i][t-1], Y[i], t)] += rate
+            w[phi(x_hat[t], x_hat[t-1], Y[i], t)] -= rate
 
     N = len(X)
-    w = np.zeros(N+1, dtype=object)
-    w[0] = w0
-    for i in range(N):
-        x_hat = viterbi(Y[i], suppxList, phi, w[i])
-        w[i+1] = w[i] + rate * calc_change_weight(x_hat, i)
+    w = w0.copy()
+    for i in range(500):
+        x_hat = viterbi(Y[i], suppxList, phi, w)
+        update_w(x_hat, i, w)
 
-    return np.mean(w[1:])
+    return w

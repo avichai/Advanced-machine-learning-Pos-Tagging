@@ -142,11 +142,12 @@ def main():
     """
 
     # Constants
-    NUM_REPITIONS = 2 # 5
-    TRAIN_DATA_PERCNTAGES = [0.05, 0.1]#[0.1, 0.25, 0.5, 0.9]
+    NUM_REPITIONS = 5
+    TRAIN_DATA_PERCNTAGES = [0.1, 0.25, 0.5, 0.9]
     zippth = './data_split.gz'
     pickle_savepth = './results.pickle'
-    SAMPLE_SIZE_FOR_ERROR = 20 # 500 # TODO - if 0 then on everything
+    SAMPLE_SIZE_FOR_ERROR = 1000  # TODO - if 0 then on everything
+    RATE = 0.03
 
 
     # init results structs
@@ -202,7 +203,7 @@ def main():
             #### starting perceptron checks: ###
             w0 = np.zeros(D)
             print("Perceptron simple phi space")
-            w_hat = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0, 0.05) #todo check different rates
+            w_hat = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0, RATE) #todo check different rates
 
             char_phi, D2 = phi_models.get_word_carachteristics_phi()
             phi_complex, D3 = phi_models.get_complex_phi(char_phi, D2, simple_phi, D)
@@ -211,9 +212,9 @@ def main():
             w0_complex = np.zeros(D3)
 
             print("Perceptron simple char space")
-            w_char = pos_tagging.perceptron(trainX, trainY, xvlist, char_phi, w0_char, 0.05) #todo check different rates
+            w_char = pos_tagging.perceptron(trainX, trainY, xvlist, char_phi, w0_char, RATE) #todo check different rates
             print("Perceptron simple complex space")
-            w_complex = pos_tagging.perceptron(trainX, trainY, xvlist, phi_complex, w0_complex, 0.05) #todo check different rates
+            w_complex = pos_tagging.perceptron(trainX, trainY, xvlist, phi_complex, w0_complex, RATE) #todo check different rates
 
 
             print('Inf error sample')

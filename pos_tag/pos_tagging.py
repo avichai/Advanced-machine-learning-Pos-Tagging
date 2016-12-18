@@ -12,11 +12,13 @@ def log_likelihood(q, t, e, ni, nij, nyi):
                 the sentence.
     :param t: shape = (| val ( X )| ,| val ( X )|) transition
     :param e: shape = (| val ( X )| ,| val ( Y )|) emission
-    :param ni: number of times i in val(X) began a sequence
+    :param ni: number of times i in val(X) began a sequence - sum(ni)=#sentences
     :param nij: number of times i in val(X) appeared before j in val(X)
     :param nyi: number of times y in val(Y) was omitted in state i in val(X)
     :return: the log likelihood for HMM
     """
+    # The addition of EPS will make almost no difference where q(i)!=0. Where q(i)==0, it means n(i)==0 so
+    # either way it will make no difference after the dot product
     return (np.dot(ni, np.log(q + EPS)) + np.dot(nij.flatten(), np.log(t + EPS).flatten()) +
             np.dot(nyi.flatten(), np.log(e + EPS).flatten())) / np.sum(ni)
 
@@ -28,11 +30,9 @@ def get_ni(X, xvalsDict):
     :param xvalsDict: a dictionary of POS tags
     :return:
     """
-    prefix_X = np.asarray([seq[0] for seq in X])
     q = np.zeros(len(xvalsDict))
-    for x in prefix_X:
-        q[xvalsDict[x]] += 1
-    q = q[:len(xvalsDict) - 1]
+    for seq in X:
+        q[xvalsDict[seq[0]]] += 1
     return q
 
 
@@ -69,10 +69,10 @@ def get_ni_nij_nyi(X, y, xvDict, yvDict):
 
     nij = nij[:S, :S]
     nyi = nyi[:T, :S]
-    ni = get_ni(X, xvDict)
-
     del xvDict[PADDING_CONST]
     del yvDict[PADDING_CONST]
+    ni = get_ni(X, xvDict)
+
     return ni, nij, nyi
 
 
@@ -92,7 +92,7 @@ def mle(x, y, xvDict, yvDict):
             q . TODO
     """
     ni, nij, nyi = get_ni_nij_nyi(x, y, xvDict, yvDict)
-    t_hat = get_estimator(nij)
+    t_hat = get_estimator(nij, axis=1)
     e_hat = get_estimator(nyi)
     q_hat = ni / ni.sum()
     return t_hat, e_hat, q_hat, log_likelihood(q_hat, t_hat, e_hat, ni, nij, nyi)
@@ -108,14 +108,17 @@ def flatten_list(lst, PADDING_CONST=''):
     return np.asarray([item for sublist in lst for item in [PADDING_CONST] + sublist + [PADDING_CONST]])
 
 
-def get_estimator(n_mat):
+def get_estimator(n_mat, axis=0):
     """
     get the estimator of t_hat or q_hat while ignoring 0's
     :param n_mat: the from which we get the estimator from.
     :return: the estimator of t_hat or q_hat while ignoring 0's
     """
-    denom = repmat(np.sum(n_mat, axis=0)[np.newaxis, :], n_mat.shape[0], 1)
-    mask = denom == 0
+    if axis==0:
+        denom = repmat(np.sum(n_mat, axis=0)[np.newaxis, :], n_mat.shape[0], 1)
+    elif axis == 1:
+        denom = repmat(np.sum(n_mat, axis=1)[:, np.newaxis], 1, n_mat.shape[1])
+    mask = denom == 0.
     denom[mask] = 1
     res = np.divide(n_mat, denom)
     res[mask] = 0
@@ -155,18 +158,18 @@ def sample_seq(seq_len, xvlist, yvlist, t, e, q):
     def sample_y(col):
         """
         sample one word
-        :param col:  index of the current POS
+        :param col: index of the current POS
         :return: sampled one word
         """
         return choice(a=yvlist, size=1, p=e[:, col])[0]
 
-    def sample_newx(col):
+    def sample_newx(row):
         """
         sample a tag
-        :param col: index of the current POS
+        :param row: index of the current POS (we want to find the next which is one of the columns in the row)
         :return: sample a tag
         """
-        return np.where(multinomial(1, t[:, col]) == 1)[0][0]
+        return np.where(multinomial(1, t[row, :]) == 1)[0][0]
 
     seq_x = [''] * seq_len
     seq_y = [''] * seq_len
@@ -249,7 +252,7 @@ def viterbi(y, suppxList, phi, w):
 
         v_mat[tidx, :, 0] = phi_trans.argmax(axis=0)
         v_mat[tidx, :, 1] = phi_trans.max(axis=0)
-    print(str(M), time() - t)
+    #print(str(M), time() - t)
     max_v_idx_cur = int(np.argmax(v_mat[-1, :, 1]))
     x_hat = np.zeros((M, 1))
     for i in range(M):

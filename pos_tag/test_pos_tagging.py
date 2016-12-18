@@ -48,9 +48,9 @@ def main():
     """
 
     # Constants
-    NUM_REPITIONS = 5
-    TRAIN_DATA_PERCNTAGES = [0.1, 0.25, 0.5, 0.9]
-    zippth = '../data_split.gz'
+    NUM_REPITIONS = 2 # todo change
+    TRAIN_DATA_PERCNTAGES = [0.1, 0.9] #[0.1, 0.9] #[0.1, 0.25, 0.5, 0.9]
+    zippth = './data_split.gz'
     SAMPLE_SIZE_FOR_ERROR = 50
 
     def plot_results(title, mat, ax):
@@ -72,6 +72,19 @@ def main():
     results_train_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
     results_test_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
     results_sampled_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+
+    results_perceptron_train_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+    results_perceptron_test_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+
+    results_perceptron_hmm_train_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+    results_perceptron_hmm_test_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+
+    results_perceptron_char_train_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+    results_perceptron_char_test_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+
+    results_perceptron_complex_train_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+    results_perceptron_complex_test_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
+
 
     data, xv, yv = parser.collect_sets(zippth, k=10, n=NUM_REPITIONS)  # 9/10 of data is for training, only one copy
 
@@ -119,20 +132,70 @@ def main():
             results_train_err[pidx, rep] = get_inference_err(trainX[train_rnd_ind], trainY[train_rnd_ind], xvlist, simple_phi, simple_w)
             results_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind], testY[test_rnd_ind], xvlist, simple_phi, simple_w)
 
+
+            #### starting perceptron checks: ###
+            S, T = len(xvDict), len(yvDict)
+            D = S + S * S + T * S
+            w0 = np.zeros(D)
+            w_hat = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0, 0.05) #todo check different rates
+            results_perceptron_train_err[pidx, rep] = get_inference_err(trainX[train_rnd_ind], trainY[train_rnd_ind], xvlist,
+                                                             simple_phi, w_hat)
+            results_perceptron_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind], testY[test_rnd_ind], xvlist,
+                                                            simple_phi, w_hat)
+
+            char_phi, D2 = phi_models.get_word_carachteristics_phi()
+            phi_complex, D3 = phi_models.get_complex_phi(char_phi, D2, simple_phi, D)
+
+            w0_char = np.zeros(D2)
+            w0_complex = np.zeros(D+D2)
+
+            w_char = pos_tagging.perceptron(trainX, trainY, xvlist, char_phi, w0_char, 0.05) #todo check different rates
+            w_complex = pos_tagging.perceptron(trainX, trainY, xvlist, phi_complex, w0_complex, 0.05) #todo check different rates
+
+            results_perceptron_char_train_err[pidx, rep] = get_inference_err(testX[test_rnd_ind],
+                                                                                 testY[test_rnd_ind], xvlist,
+                                                                             char_phi, w0_char)
+            results_perceptron_char_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind],
+                                                                                 testY[test_rnd_ind], xvlist,
+                                                                            char_phi, w0_char)
+            results_perceptron_complex_train_err[pidx, rep] = get_inference_err(testX[test_rnd_ind],
+                                                                                 testY[test_rnd_ind], xvlist,
+                                                                                phi_complex, w0_complex)
+            results_perceptron_complex_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind],
+                                                                                 testY[test_rnd_ind], xvlist,
+                                                                               phi_complex, w0_complex)
+
     f = plt.figure()
     f.suptitle("Performance as a function of training data size")
-    ax = plt.subplot(3,2,1)
+    ax = plt.subplot(3,5,1)
     plot_results('Sample Number Vs. Train Time (Per sample size)', results_time, ax)
-    ax = plt.subplot(3,2,3)
+    ax = plt.subplot(3,5,6)
     plot_results('Sample Number Vs. Train LogLikelihood (Per sample size)', results_train_LL, ax)
-    ax = plt.subplot(3,2,5)
+    ax = plt.subplot(3,5,11)
     plot_results('Sample Number Vs. Test LogLikelihood (Per sample size)', results_test_LL, ax)
-    ax = plt.subplot(3,2,2)
+    ax = plt.subplot(3,5,2)
     plot_results('Sample Number Vs. Sampled Error (Per sample size)', results_sampled_err, ax)
-    ax = plt.subplot(3,2,4)
+    ax = plt.subplot(3,5,7)
     plot_results('Sample Number Vs. Train Error (Per sample size)', results_train_err, ax)
-    ax = plt.subplot(3,2,6)
+    ax = plt.subplot(3,5,12)
     plot_results('Sample Number Vs. Test Error (Per sample size)', results_test_err, ax)
+
+    ax = plt.subplot(3, 5, 3)
+    plot_results('Sample Number Vs. Perceptron Train Error (Per sample size)', results_perceptron_train_err, ax)
+    ax = plt.subplot(3, 5, 8)
+    plot_results('Sample Number Vs. Perceptron Test Error (Per sample size)', results_perceptron_test_err, ax)
+
+    ax = plt.subplot(3, 5, 4)
+    plot_results('Sample Number Vs. char Train Error (Per sample size)', results_perceptron_char_train_err, ax)
+    ax = plt.subplot(3, 5, 9)
+    plot_results('Sample Number Vs. char Test Error (Per sample size)', results_perceptron_char_test_err, ax)
+
+
+    ax = plt.subplot(3, 5, 5)
+    plot_results('Sample Number Vs. complex Train Error (Per sample size)', results_perceptron_complex_train_err, ax)
+    ax = plt.subplot(3, 5, 10)
+    plot_results('Sample Number Vs. complex Test Error (Per sample size)', results_perceptron_complex_test_err, ax)
+
     plt.show(block=True)
 
 

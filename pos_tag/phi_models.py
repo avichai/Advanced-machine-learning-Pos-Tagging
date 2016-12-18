@@ -2,6 +2,15 @@ import numpy as np
 
 
 def get_hmm_w_vec(t, e, q, suppX, suppY):
+    """
+
+    :param t:
+    :param e:
+    :param q:
+    :param suppX:
+    :param suppY:
+    :return:
+    """
     S, T = len(suppX), len(suppY)
     D = S + S * S + T * S
     w = np.zeros(D)
@@ -43,6 +52,10 @@ def get_hmm_phi(suppX, suppY):
 
 
 def get_word_carachteristics_phi():
+    """
+
+    :return:
+    """
     num_features = 5
 
     def phi(xt, xprev, y, t):
@@ -51,11 +64,19 @@ def get_word_carachteristics_phi():
                                 y[t].endswith('ed'),
                                 y[t].endswith('ing'),
                                 all(c.isalpha() for c in y[t])], dtype=np.bool)
-        return np.where(indices_vec == True).tolist()
+        return np.where(indices_vec == True)[0].tolist()
     return phi, num_features
 
 
 def get_complex_phi(phi1, D1, phi2, D2):
+    """
+
+    :param phi1:
+    :param D1:
+    :param phi2:
+    :param D2:
+    :return:
+    """
     def phi(xt, xprev, y, t):
         return phi1(xt, xprev, y, t) + (np.asarray(phi2(xt, xprev, y, t)) + D1).tolist()
     return phi, D1+D2

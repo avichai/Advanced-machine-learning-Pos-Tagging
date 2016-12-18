@@ -283,7 +283,8 @@ def perceptron(X, Y, suppxList, phi, w0, rate):
 
     N = len(X)
     w = w0.copy()
-    for i in range(10):
+    for i in range(100):
+        print(i)
         x_hat = viterbi(Y[i], suppxList, phi, w)
         update_w(x_hat, i, w)
 

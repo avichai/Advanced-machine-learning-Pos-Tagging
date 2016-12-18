@@ -92,7 +92,7 @@ def mle(x, y, xvDict, yvDict):
             q . TODO
     """
     ni, nij, nyi = get_ni_nij_nyi(x, y, xvDict, yvDict)
-    t_hat = get_estimator(nij)
+    t_hat = get_estimator(nij, axis=1)
     e_hat = get_estimator(nyi)
     q_hat = ni / ni.sum()
     return t_hat, e_hat, q_hat, log_likelihood(q_hat, t_hat, e_hat, ni, nij, nyi)
@@ -108,13 +108,16 @@ def flatten_list(lst, PADDING_CONST=''):
     return np.asarray([item for sublist in lst for item in [PADDING_CONST] + sublist + [PADDING_CONST]])
 
 
-def get_estimator(n_mat):
+def get_estimator(n_mat, axis=0):
     """
     get the estimator of t_hat or q_hat while ignoring 0's
     :param n_mat: the from which we get the estimator from.
     :return: the estimator of t_hat or q_hat while ignoring 0's
     """
-    denom = repmat(np.sum(n_mat, axis=0)[np.newaxis, :], n_mat.shape[0], 1)
+    if axis==0:
+        denom = repmat(np.sum(n_mat, axis=0)[np.newaxis, :], n_mat.shape[0], 1)
+    elif axis == 1:
+        denom = repmat(np.sum(n_mat, axis=1)[:, np.newaxis], 1, n_mat.shape[1])
     mask = denom == 0.
     denom[mask] = 1
     res = np.divide(n_mat, denom)
@@ -155,18 +158,18 @@ def sample_seq(seq_len, xvlist, yvlist, t, e, q):
     def sample_y(col):
         """
         sample one word
-        :param col:  index of the current POS
+        :param col: index of the current POS
         :return: sampled one word
         """
         return choice(a=yvlist, size=1, p=e[:, col])[0]
 
-    def sample_newx(col):
+    def sample_newx(row):
         """
         sample a tag
-        :param col: index of the current POS
+        :param row: index of the current POS (we want to find the next which is one of the columns in the row)
         :return: sample a tag
         """
-        return np.where(multinomial(1, t[:, col]) == 1)[0][0]
+        return np.where(multinomial(1, t[row, :]) == 1)[0][0]
 
     seq_x = [''] * seq_len
     seq_y = [''] * seq_len

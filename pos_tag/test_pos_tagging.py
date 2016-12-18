@@ -55,10 +55,10 @@ def main():
     """
 
     # Constants
-    NUM_REPITIONS = 2 # 5
+    NUM_REPITIONS = 3 # 5
     TRAIN_DATA_PERCNTAGES = [0.1, 0.25, 0.5, 0.9]
     zippth = './data_split.gz'
-    SAMPLE_SIZE_FOR_ERROR = 400 # 500 # TODO - if 0 then on everything
+    SAMPLE_SIZE_FOR_ERROR = 100 # 500 # TODO - if 0 then on everything
 
     def plot_results(title, mat, ax, side='right'):
         """

@@ -4,6 +4,8 @@ from pos_tag import phi_models
 import numpy as np
 from time import time
 import matplotlib.pyplot as plt
+#TODO -link y axis
+# TODO - add legends to axes
 
 def set2DictAndList(words_set):
     """
@@ -15,6 +17,11 @@ def set2DictAndList(words_set):
     wordslist = [''] * len(wordsDict)
     for k, v in wordsDict.items():
         wordslist[v] = k
+
+    # UT
+    for i, w in enumerate(wordslist):
+        if wordsDict[w] != i:
+            raise Exception("list and dict building was not correct")
     return wordsDict, wordslist
 
 def get_inference_err(sentencesx, sentencesy, xvlist, phi, w):
@@ -49,9 +56,9 @@ def main():
 
     # Constants
     NUM_REPITIONS = 2 # 5
-    TRAIN_DATA_PERCNTAGES = [0.05, 0.1] #[0.1, 0.25, 0.5, 0.9]
+    TRAIN_DATA_PERCNTAGES = [0.1, 0.25, 0.5, 0.9]
     zippth = './data_split.gz'
-    SAMPLE_SIZE_FOR_ERROR = 1 # 500 # TODO - if 0 then on everything
+    SAMPLE_SIZE_FOR_ERROR = 400 # 500 # TODO - if 0 then on everything
 
     def plot_results(title, mat, ax, side='right'):
         """
@@ -89,6 +96,8 @@ def main():
             raise Exception("Percentage is to big")
 
         for rep in range(NUM_REPITIONS):
+            print("-----------------Starting perc: {0}/{1}, rep: {2}/{3}----------------".format(pidx+1, len(TRAIN_DATA_PERCNTAGES),rep+1,NUM_REPITIONS))
+
             # Sampling data
             X_train = [d[0] for d in data[rep]['train']]
             Y_train = [d[1] for d in data[rep]['train']]
@@ -101,27 +110,30 @@ def main():
 
             # Estimate ML and get LL
             start_time = time()
+            print('train')
             t_hat, e_hat, q_hat, results_train_LL[pidx, rep] = pos_tagging.mle(trainX, trainY, xvDict, yvDict)
             results_time[pidx, rep] = time() - start_time
             ni, nij, nyi = pos_tagging.get_ni_nij_nyi(X_test, Y_test, xvDict, yvDict)
+            print('test LL')
             results_test_LL[pidx, rep] = pos_tagging.log_likelihood(q_hat, t_hat, e_hat, ni, nij, nyi)
 
-            # TODO - remove
-            print(results_time[pidx, rep], results_train_LL[pidx, rep], results_test_LL[pidx, rep])
-
-
             # Sample data using MLE
-            sentencesx, sentencesy = pos_tagging.sample(np.random.randint(low=4, high=40, size=SAMPLE_SIZE_FOR_ERROR),
+            print('Sample')
+            curr_sample_size_for_error = int(perc*SAMPLE_SIZE_FOR_ERROR)
+            sentencesx, sentencesy = pos_tagging.sample(np.random.randint(low=7, high=35, size=curr_sample_size_for_error),
                                                         xvlist, yvlist, t_hat, e_hat, q_hat)
 
             # Test inference (Against sampled data, train data, test data)
             simple_phi, D = phi_models.get_hmm_phi(xvDict, yvDict)
             simple_w = phi_models.get_hmm_w_vec(t_hat, e_hat, q_hat, xvDict, yvDict)
 
-            train_rnd_ind = np.random.choice(a=np.arange(len(trainX)), size=SAMPLE_SIZE_FOR_ERROR)
-            test_rnd_ind = np.random.choice(a=np.arange(len(X_test)), size=SAMPLE_SIZE_FOR_ERROR)
+            train_rnd_ind = np.random.choice(a=np.arange(len(trainX)), size=curr_sample_size_for_error)
+            test_rnd_ind = np.random.choice(a=np.arange(len(X_test)), size=curr_sample_size_for_error)
+            print('Inf error sample')
             results_sampled_err[pidx, rep] = get_inference_err(sentencesx, sentencesy, xvlist, simple_phi, simple_w)
+            print('Inf error train')
             results_train_err[pidx, rep] = get_inference_err(trainX[train_rnd_ind], trainY[train_rnd_ind], xvlist, simple_phi, simple_w)
+            print('Inf error test')
             results_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind], testY[test_rnd_ind], xvlist, simple_phi, simple_w)
 
     f = plt.figure()

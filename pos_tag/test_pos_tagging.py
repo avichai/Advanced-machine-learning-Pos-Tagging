@@ -30,6 +30,7 @@ class TestingResult:
         self.results_perceptron_complex_train_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
         self.results_perceptron_complex_test_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
 
+
     def dump(self, pth):
         pdir, name = os.path.split(pth)
         if not os.path.exists(pdir):
@@ -55,6 +56,7 @@ class TestingResult:
         ax.set_xlim([0.9, self.NUM_REPITIONS+0.1])
         ax.xaxis.set_ticks(np.arange(1, self.NUM_REPITIONS + 1, 1, dtype=np.int32))
 
+
     def plot_initial_plots(self):
         f = plt.figure()
         f.suptitle("Performance as a function of training data size")
@@ -70,6 +72,7 @@ class TestingResult:
         self.plot_results('Sample Number Vs. Train Error (Per sample size)', self.results_train_err, ax)
         ax = plt.subplot(3, 2, 6)
         self.plot_results('Sample Number Vs. Test Error (Per sample size)', self.results_test_err, ax)
+
 
     def plot_perceptron_plots(self):
         f = plt.figure()
@@ -87,11 +90,11 @@ class TestingResult:
         ax = plt.subplot(3, 2, 6)
         self.plot_results('complex perc test', self.results_perceptron_complex_test_err, ax)
 
+
     def plot(self):
         self.plot_initial_plots()
         self.plot_perceptron_plots()
         plt.show(block=True)
-
 
 
 def set2DictAndList(words_set):
@@ -110,6 +113,7 @@ def set2DictAndList(words_set):
         if wordsDict[w] != i:
             raise Exception("list and dict building was not correct")
     return wordsDict, wordslist
+
 
 def get_inference_err(sentencesx, sentencesy, xvlist, phi, w):
     """
@@ -130,13 +134,11 @@ def get_inference_err(sentencesx, sentencesy, xvlist, phi, w):
     return 1 - correct / float(total_wrods)
 
 
-
-
-
 def main():
     """
-    This function is designed to test out functions. In order to do so it runs ML estimation on several chunks
-    of data in different sizes, test infernce error (against train data, sampled data and test data).
+    This function is designed to test out functions. In order to do so it runs ML estimation on several
+    chunks of data in different sizes, test infernce error (against train data, sampled data and test
+    data).
     Also, it tests different models using the perceptron in prder to learn. Evantually,
     it plots the results for easier viweing.
     """
@@ -153,7 +155,8 @@ def main():
     # init results structs
     results = TestingResult(TRAIN_DATA_PERCNTAGES, NUM_REPITIONS)
 
-    data, xv, yv = parser.collect_sets(zippth, k=10, n=NUM_REPITIONS)  # 9/10 of data is for training, only one copy
+    # 9/10 of data is for training, only one copy
+    data, xv, yv = parser.collect_sets(zippth, k=10, n=NUM_REPITIONS)
 
     xvDict, xvlist = set2DictAndList(xv)
     yvDict, yvlist = set2DictAndList(yv)
@@ -164,32 +167,26 @@ def main():
             raise Exception("Percentage is to big")
 
         for rep in range(NUM_REPITIONS):
-            print("-----------------Starting perc: {0}/{1}, rep: {2}/{3}----------------".format(pidx+1, len(TRAIN_DATA_PERCNTAGES),rep+1,NUM_REPITIONS))
+            print("-----------------Starting perc: {0}/{1}, rep: {2}/{3}----------------".
+                  format(pidx+1, len(TRAIN_DATA_PERCNTAGES),rep+1,NUM_REPITIONS))
 
             # Sampling data
-            X_train = [d[0] for d in data[rep]['train']]
-            Y_train = [d[1] for d in data[rep]['train']]
-            X_test = [d[0] for d in data[rep]['test']]
-            Y_test = [d[1] for d in data[rep]['test']]
-            trainX = np.asarray(X_train)[:int(len(X_train)*perc*10.0/9)]
-            trainY = np.asarray(Y_train)[:int(len(Y_train)*perc*10.0/9)]
-            testX = np.asarray(X_test)
-            testY = np.asarray(Y_test)
+            X_test, Y_test, testX, testY, trainX, trainY = get_current_data(data, perc, rep)
 
             # Estimate ML and get LL
-            start_time = time()
-            print('train')
-            t_hat, e_hat, q_hat, results.results_train_LL[pidx, rep] = pos_tagging.mle(trainX, trainY, xvDict, yvDict)
-            results.results_time[pidx, rep] = time() - start_time
+            e_hat, q_hat, t_hat = estimate_mle(pidx, rep, results, trainX, trainY, xvDict, yvDict)
+
+            # get test data LL
             ni, nij, nyi = pos_tagging.get_ni_nij_nyi(X_test, Y_test, xvDict, yvDict)
             print('test LL')
-            results.results_test_LL[pidx, rep] = pos_tagging.log_likelihood(q_hat, t_hat, e_hat, ni, nij, nyi)
+            results.results_test_LL[pidx, rep] = pos_tagging.log_likelihood(
+                q_hat, t_hat, e_hat, ni, nij, nyi)
 
             # Sample data using MLE
             print('Sample')
             curr_sample_size_for_error = int(perc*SAMPLE_SIZE_FOR_ERROR)
-            sentencesx, sentencesy = pos_tagging.sample(np.random.randint(low=7, high=35, size=curr_sample_size_for_error),
-                                                        xvlist, yvlist, t_hat, e_hat, q_hat)
+            sentencesx, sentencesy = pos_tagging.sample(np.random.randint(
+                low=7, high=35, size=curr_sample_size_for_error), xvlist, yvlist, t_hat, e_hat, q_hat)
 
             # Test inference (Against sampled data, train data, test data)
             simple_phi, D = phi_models.get_hmm_phi(xvDict, yvDict)
@@ -201,65 +198,100 @@ def main():
 
 
             #### starting perceptron checks: ###
-            if perc == 0.1:
-                w0 = np.zeros(D)
-                print("Perceptron simple phi space")
-                w_hat = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0, RATE) #todo check different rates
+            char_phi, phi_complex, w_char, w_complex, w_hat = run_perceptrons(D, RATE, simple_phi,
+                                                                              trainX, trainY, xvlist)
 
-                char_phi, D2 = phi_models.get_word_carachteristics_phi()
-                phi_complex, D3 = phi_models.get_complex_phi(char_phi, D2, simple_phi, D)
-
-                w0_char = np.zeros(D2)
-                w0_complex = np.zeros(D3)
-
-                print("Perceptron simple char space")
-                w_char = pos_tagging.perceptron(trainX, trainY, xvlist, char_phi, w0_char, RATE) #todo check different rates
-                print("Perceptron simple complex space")
-                w_complex = pos_tagging.perceptron(trainX, trainY, xvlist, phi_complex, w0_complex, RATE) #todo check different rates
-
-
-                print('Inf error sample')
-                results.results_sampled_err[pidx, rep] = get_inference_err(sentencesx, sentencesy, xvlist,                                                               simple_phi, simple_w)
-                print('Inf error train')
-                results.results_train_err[pidx, rep] = get_inference_err(trainX[train_rnd_ind],
-                                                                         trainY[train_rnd_ind], xvlist,
-                                                                         simple_phi, simple_w)
-                print('Inf error test')
-                results.results_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind], testY[test_rnd_ind],
-                                                                        xvlist, simple_phi, simple_w)
-                print('Inf simple perceptron error train')
-                results.results_perceptron_train_err[pidx, rep] = get_inference_err(trainX[train_rnd_ind],
-                                                                                    trainY[train_rnd_ind], xvlist,
-                                                                                        simple_phi, w_hat)
-                print('Inf simple perceptron error test')
-                results.results_perceptron_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind],
-                                                                                   testY[test_rnd_ind], xvlist,
-                                                                                   simple_phi, w_hat)
-                print('Inf char perceptron error train')
-                results.results_perceptron_char_train_err[pidx, rep] = get_inference_err(trainX[train_rnd_ind],
-                                                                                         trainY[train_rnd_ind],
-                                                                                         xvlist,
-                                                                                         char_phi, w_char)
-                print('Inf char perceptron error test')
-                results.results_perceptron_char_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind],
-                                                                                        testY[test_rnd_ind],
-                                                                                        xvlist,
-                                                                                        char_phi, w_char)
-                print('Inf complex perceptron error train')
-                results.results_perceptron_complex_train_err[pidx, rep] = get_inference_err(trainX[train_rnd_ind],
-                                                                                            trainY[train_rnd_ind],
-                                                                                            xvlist,
-                                                                                            phi_complex,
-                                                                                            w_complex)
-                print('Inf complex perceptron error test')
-                results.results_perceptron_complex_test_err[pidx, rep] = get_inference_err(testX[test_rnd_ind],
-                                                                                           testY[test_rnd_ind],
-                                                                                           xvlist,
-                                                                                           phi_complex, w_complex)
+            calculate_inference_errors(char_phi, phi_complex, pidx, rep, results, sentencesx,
+                                       sentencesy, simple_phi, simple_w, testX, testY, test_rnd_ind,
+                                       trainX, trainY, train_rnd_ind, w_char, w_complex, w_hat,
+                                       xvlist)
 
     results.dump(pickle_savepth)
     results.plot()
     return results
+
+
+def estimate_mle(pidx, rep, results, trainX, trainY, xvDict, yvDict):
+    """
+    estimate the mle.
+    """
+    start_time = time()
+    print('train')
+    t_hat, e_hat, q_hat, results.results_train_LL[pidx, rep] = pos_tagging.mle(trainX, trainY, xvDict,
+                                                                               yvDict)
+    results.results_time[pidx, rep] = time() - start_time
+    return e_hat, q_hat, t_hat
+
+
+def get_current_data(data, perc, rep):
+    """
+    retrieve the data
+    """
+    X_train = [d[0] for d in data[rep]['train']]
+    Y_train = [d[1] for d in data[rep]['train']]
+    X_test = [d[0] for d in data[rep]['test']]
+    Y_test = [d[1] for d in data[rep]['test']]
+    trainX = np.asarray(X_train)[:int(len(X_train) * perc * 10.0 / 9)]
+    trainY = np.asarray(Y_train)[:int(len(Y_train) * perc * 10.0 / 9)]
+    testX = np.asarray(X_test)
+    testY = np.asarray(Y_test)
+    return X_test, Y_test, testX, testY, trainX, trainY
+
+
+def run_perceptrons(D, RATE, simple_phi, trainX, trainY, xvlist):
+    """
+    running the perceptron algorithm on different models.
+    """
+    w0 = np.zeros(D)
+    print("Perceptron simple phi space")
+    w_hat = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0,
+                                   RATE)  # todo check different rates
+    char_phi, D2 = phi_models.get_word_carachteristics_phi()
+    phi_complex, D3 = phi_models.get_complex_phi(char_phi, D2, simple_phi, D)
+    w0_char = np.zeros(D2)
+    w0_complex = np.zeros(D3)
+    print("Perceptron simple char space")
+    w_char = pos_tagging.perceptron(trainX, trainY, xvlist, char_phi, w0_char,
+                                    RATE)  # todo check different rates
+    print("Perceptron simple complex space")
+    w_complex = pos_tagging.perceptron(trainX, trainY, xvlist, phi_complex, w0_complex,
+                                       RATE)  # todo check different rates
+    return char_phi, phi_complex, w_char, w_complex, w_hat
+
+
+def calculate_inference_errors(char_phi, phi_complex, pidx, rep, results, sentencesx, sentencesy,
+                               simple_phi, simple_w, testX, testY, test_rnd_ind, trainX, trainY,
+                               train_rnd_ind, w_char, w_complex, w_hat, xvlist):
+    """
+    calculate inference on different models.
+    """
+    print('Inf error sample')
+    results.results_sampled_err[pidx, rep] = get_inference_err(
+        sentencesx, sentencesy, xvlist, simple_phi, simple_w)
+    print('Inf error train')
+    results.results_train_err[pidx, rep] = get_inference_err(
+        trainX[train_rnd_ind], trainY[train_rnd_ind], xvlist, simple_phi, simple_w)
+    print('Inf error test')
+    results.results_test_err[pidx, rep] = get_inference_err(
+        testX[test_rnd_ind], testY[test_rnd_ind], xvlist, simple_phi, simple_w)
+    print('Inf simple perceptron error train')
+    results.results_perceptron_train_err[pidx, rep] = get_inference_err(
+        trainX[train_rnd_ind], trainY[train_rnd_ind], xvlist, simple_phi, w_hat)
+    print('Inf simple perceptron error test')
+    results.results_perceptron_test_err[pidx, rep] = get_inference_err(
+        testX[test_rnd_ind], testY[test_rnd_ind], xvlist, simple_phi, w_hat)
+    print('Inf char perceptron error train')
+    results.results_perceptron_char_train_err[pidx, rep] = get_inference_err(
+        trainX[train_rnd_ind], trainY[train_rnd_ind], xvlist, char_phi, w_char)
+    print('Inf char perceptron error test')
+    results.results_perceptron_char_test_err[pidx, rep] = get_inference_err(
+        testX[test_rnd_ind], testY[test_rnd_ind], xvlist, char_phi, w_char)
+    print('Inf complex perceptron error train')
+    results.results_perceptron_complex_train_err[pidx, rep] = get_inference_err(
+        trainX[train_rnd_ind], trainY[train_rnd_ind], xvlist, phi_complex, w_complex)
+    print('Inf complex perceptron error test')
+    results.results_perceptron_complex_test_err[pidx, rep] = get_inference_err(
+        testX[test_rnd_ind], testY[test_rnd_ind], xvlist, phi_complex, w_complex)
 
 
 if __name__ == '__main__':

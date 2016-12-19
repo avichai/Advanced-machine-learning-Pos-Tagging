@@ -173,6 +173,7 @@ def sample_seq(seq_len, xvlist, yvlist, t, e, q):
         """
         return choice(a=yvlist, size=1, p=e[:, col])[0]
 
+
     def sample_newx(row):
         """
         sample a tag
@@ -181,6 +182,7 @@ def sample_seq(seq_len, xvlist, yvlist, t, e, q):
         :return: sample a tag
         """
         return np.where(multinomial(1, t[row, :]) == 1)[0][0]
+
 
     seq_x = [''] * seq_len
     seq_y = [''] * seq_len

@@ -155,6 +155,7 @@ def main():
             # Sampling data
             X_test, Y_test, testX, testY, trainX, trainY = get_current_data(data, perc, rep)
 
+
             # Estimate ML and get LL
             e_hat, q_hat, t_hat = estimate_mle(pidx, rep, results, trainX, trainY, xvDict, yvDict)
 
@@ -180,7 +181,7 @@ def main():
             #### starting perceptron checks: ###
             char_phi, phi_complex, w_char, w_complex, w_hat, \
             intervals, errors_simple, errors_char, errors_complex = run_perceptrons(D, RATE, simple_phi,
-                                                                              trainX, trainY, xvlist, testX, testY)
+                                                                              trainX, trainY, xvlist, testX, testY, xvDict)
             results.perceptron_curves[str(perc)] = \
                 pd.DataFrame({'simple': pd.Series(data=errors_simple, index=intervals),
                                 'char': pd.Series(data=errors_char, index=intervals),
@@ -231,7 +232,7 @@ def get_current_data(data, perc, rep):
     return X_test, Y_test, testX, testY, trainX, trainY
 
 
-def run_perceptrons(D, RATE, simple_phi, trainX, trainY, xvlist, testX, testY):
+def run_perceptrons(D, RATE, simple_phi, trainX, trainY, xvlist, testX, testY, xvDict):
     """
     running the perceptron algorithm on different models.
     """
@@ -241,7 +242,7 @@ def run_perceptrons(D, RATE, simple_phi, trainX, trainY, xvlist, testX, testY):
     print("Perceptron simple phi space")
     w_hat, errors_simple, intervals = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0,
                                                              RATE, [testX, testY], PERC_FOR_TESTING, INTERVAL_FOR_TESTING)
-    char_phi, D2 = phi_models.get_word_carachteristics_phi()
+    char_phi, D2 = phi_models.get_word_carachteristics_phi(xvDict)
     phi_complex, D3 = phi_models.get_complex_phi(char_phi, D2, simple_phi, D)
     w0_char = np.zeros(D2)
     w0_complex = np.zeros(D3)

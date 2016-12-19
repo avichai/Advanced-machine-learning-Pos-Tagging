@@ -51,12 +51,13 @@ def get_hmm_phi(suppX, suppY):
     return simple_phi, D
 
 
-def get_word_carachteristics_phi():
+def get_word_carachteristics_phi(suppX):
     """
 
     :return:
     """
-    num_features = 5
+    S = len(suppX)
+    num_features = 5 * (S ** 2)
 
     def phi(xt, xprev, y, t):
         indices_vec = np.array([y[t][0].isupper(),
@@ -64,7 +65,10 @@ def get_word_carachteristics_phi():
                                 y[t].endswith('ed'),
                                 y[t].endswith('ing'),
                                 all(c.isalpha() for c in y[t])], dtype=np.bool)
-        return np.where(indices_vec == True)[0].tolist()
+        if t == 0:
+            return (S*suppX[xt]*5 + np.where(np.matlib.repmat(indices_vec, 1, S)[0,:])[0]).tolist()
+        startPos = 5*(S*suppX[xt] + suppX[xprev])
+        return (startPos+np.where(indices_vec)[0]).tolist()
     return phi, num_features
 
 

@@ -283,6 +283,24 @@ def viterbi(y, suppxList, phi, w):
         max_v_idx_cur = int(v_mat[M - 1 - i, max_v_idx_cur, 0])
     return np.asarray(suppxList)[x_hat.astype(np.int32)][:, 0]
 
+def get_inference_err(sentencesx, sentencesy, xvlist, phi, w):
+    """
+    get the inference error of all sentences that were given.
+    :param sentencesx: list of POS divided by sentences
+    :param sentencesy: list of words divided by sentences
+    :param xvlist: the possible values for x variables , ordered as in t , and e ( Dict - see MLE)
+    :param phi: the possible values for y variables , ordered as in e ( Dict - see MLE)
+    :param w: the weights.
+    :return: the inference error of all sentences that were given.
+    """
+    correct = 0
+    total_wrods = 0
+    for sentx, senty in zip(sentencesx, sentencesy):
+        sentencesx_hat = viterbi(senty, xvlist, phi, w)
+        total_wrods += len(sentx)
+        correct += np.count_nonzero(np.asarray(sentx) == np.asarray(sentencesx_hat))
+    return 1 - correct / float(total_wrods)
+
 
 def perceptron(X, Y, suppxList, phi, w0, rate, test_data=None, data_perc4infernce=0.2, infernce_interval=500):
     """
@@ -307,27 +325,39 @@ def perceptron(X, Y, suppxList, phi, w0, rate, test_data=None, data_perc4infernc
             w[phi(X[i][t], X[i][t - 1], Y[i], t)] += rate
             w[phi(x_hat[t], x_hat[t - 1], Y[i], t)] -= rate
 
+    def sample_data():
+        """
+        Sample data for error calculation from the given test data
+        :return: sentencesx, sentencesy
+        """
+        test_rnd_ind = np.random.choice(a=np.arange(len(test_data[0])),
+                                        size=int(len(test_data[0])*data_perc4infernce))
+        return test_data[0][test_rnd_ind], test_data[1][test_rnd_ind]
+
     N = len(X)
     w = w0.copy()
 
     if test_data is not None:
         testing = True
-        interval = np.arange(0, N+1, infernce_interval)
-        if interval[-1] != N:
-            interval[len(interval)] = N
-        errors = np.zeros(len(interval))
+        intervals = np.arange(0, N+1, infernce_interval)
+        if intervals[-1] != N:
+            intervals = np.append(intervals, N)
+        errors = np.zeros(len(intervals))
     else:
         testing = False
 
     for i in range(N):
         if testing and i % infernce_interval == 0:
-            errors[i // infernce_interval] = get_error()
+            sentencesx, sentencesy = sample_data()
+            errors[i // infernce_interval] = get_inference_err(sentencesx, sentencesy, suppxList, phi, w)
 
         if (i+1) % 100 == 0: print(i)  # For tracing
         x_hat = viterbi(Y[i], suppxList, phi, w)
         update_w(x_hat, i, w)
 
     if testing:
-        errors[-1] = get_error()
+        sentencesx, sentencesy = sample_data()
+        errors[-1] = get_inference_err(sentencesx, sentencesy, suppxList, phi, w)
+        return w, errors, intervals
 
     return w

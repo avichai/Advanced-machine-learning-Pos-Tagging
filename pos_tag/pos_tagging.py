@@ -282,7 +282,7 @@ def viterbi(y, suppxList, phi, w):
     return np.asarray(suppxList)[x_hat.astype(np.int32)][:, 0]
 
 
-def perceptron(X, Y, suppxList, phi, w0, rate):
+def perceptron(X, Y, suppxList, phi, w0, rate, test_data=None, data_perc4infernce=0.2, infernce_interval=500):
     """
     Find w that maximizes the log - linear score
     : param X : POS tags for sentences ( iterable of lists of elements in suppx )
@@ -307,9 +307,25 @@ def perceptron(X, Y, suppxList, phi, w0, rate):
 
     N = len(X)
     w = w0.copy()
+
+    if test_data is not None:
+        testing = True
+        interval = np.arange(0, N+1, infernce_interval)
+        if interval[-1] != N:
+            interval[len(interval)] = N
+        errors = np.zeros(len(interval))
+    else:
+        testing = False
+
     for i in range(N):
+        if testing and i % infernce_interval == 0:
+            errors[i // infernce_interval] = get_error()
+
         if (i+1) % 100 == 0: print(i)  # For tracing
         x_hat = viterbi(Y[i], suppxList, phi, w)
         update_w(x_hat, i, w)
+
+    if testing:
+        errors[-1] = get_error()
 
     return w

@@ -17,8 +17,8 @@ def log_likelihood(q, t, e, ni, nij, nyi):
     :param nyi: number of times y in val(Y) was omitted in state i in val(X)
     :return: the log likelihood for HMM
     """
-    # The addition of EPS will make almost no difference where q(i)!=0. Where q(i)==0, it means n(i)==0 so
-    # either way it will make no difference after the dot product
+    # The addition of EPS will make almost no difference where q(i)!=0. Where q(i)==0,
+    # it means n(i)==0 so either way it will make no difference after the dot product
     return (np.dot(ni, np.log(q + EPS)) + np.dot(nij.flatten(), np.log(t + EPS).flatten()) +
             np.dot(nyi.flatten(), np.log(e + EPS).flatten())) / np.sum(ni)
 
@@ -28,29 +28,30 @@ def get_ni(X, xvalsDict):
     gets the number of times i in xvals began a sequence
     :param X: an iterable over sequences of POS tags
     :param xvalsDict: a dictionary of POS tags
-    :return:
+    :return: ni
     """
-    q = np.zeros(len(xvalsDict))
+    ni = np.zeros(len(xvalsDict))
     for seq in X:
-        q[xvalsDict[seq[0]]] += 1
-    return q
+        ni[xvalsDict[seq[0]]] += 1
+    return ni
 
 
 def get_ni_nij_nyi(X, y, xvDict, yvDict):
     """
-    gets the number of times i in xv began a sequence,
-    the number of times i in xv appeared before j in xv,
-    number of times y in yv was omitted in state i in xv
+    gets the number of times i in xvDict began a sequence,
+    the number of times i in xvDict appeared before j in xvDict,
+    number of times y in yvDict was omitted in state i in xvDict
     :param X: an iterable over sequences of POS tags
     :param y: a matching iterable over sequences of words
-    :param xvDict: A dictionary from POS tagging (possible xvalue) to index between 0 to len(xv)-1 - Note that its a
-                bijective mapping
-    :param yvDict: A dictionary from Possible word (possible xvalue) to index between 0 to len(yv)-1 - Note that its a
-                bijective mapping
+    :param xvDict: A dictionary from POS tagging (possible xvalue) to index between 0 to len(xv)-1 -
+                Note that its a bijective mapping
+    :param yvDict: A dictionary from Possible word (possible xvalue) to index between 0 to len(yv)-1 -
+                    Note that its a bijective mapping
     :return: the number of times i in xv began a sequence,
                 the number of times i in xv appeared before j in xv,
                 number of times y in yv was omitted in state i in xv
     """
+    # Inits
     PADDING_CONST = '##$$##'  # A padding constant which is not in either supports of x or y
     while PADDING_CONST in yvDict or PADDING_CONST in xvDict:
         PADDING_CONST += '$'
@@ -62,15 +63,20 @@ def get_ni_nij_nyi(X, y, xvDict, yvDict):
     nyi = np.zeros((T + 1, S + 1))
     xvDict[PADDING_CONST] = S
     yvDict[PADDING_CONST] = T
+
+    # find nij and nyi
     for i in range(M - 1):
         nij[xvDict[flatten_X[i]], xvDict[flatten_X[i + 1]]] += 1
         nyi[yvDict[flatten_Y[i]], xvDict[flatten_X[i]]] += 1
-        # Note that we don't go over the last pair of y and x, but its a padding from the flatten function either way
+        # Note that we don't go over the last pair of y and x, but its a padding from the flatten
+        # function either way
 
+    # slice out the extra rows/cols used for the padding const and remove it from dict
     nij = nij[:S, :S]
     nyi = nyi[:T, :S]
     del xvDict[PADDING_CONST]
     del yvDict[PADDING_CONST]
+
     ni = get_ni(X, xvDict)
 
     return ni, nij, nyi
@@ -82,14 +88,14 @@ def mle(x, y, xvDict, yvDict):
     emission distributions , in the multinomial HMM case .
     :param x: an iterable over sequences of POS tags
     :param y: a matching iterable over sequences of words
-    :param xvDict: A dictionary from POS tagging (possible xvalue) to index between 0 to len(xv)-1 - Note that its a
-                bijective mapping
-    :param yvDict: A dictionary from Possible word (possible xvalue) to index between 0 to len(yv)-1 - Note that its a
-                bijective mapping
+    :param xvDict: A dictionary from POS tagging (possible xvalue) to index between 0 to len(xv)-1 -
+                Note that its a bijective mapping
+    :param yvDict: A dictionary from Possible word (possible xvalue) to index between 0 to len(yv)-1 -
+                Note that its a bijective mapping
     :return: a  tuple (t, e, q), with
             t . shape = (| val ( X )| ,| val ( X )|) , and
             e . shape = (| val ( X )| ,| val ( Y )|)
-            q . TODO
+            q . The estimated multinomial distribution for Pr(FirstWordInSentence=x) for every x in xvDict
     """
     ni, nij, nyi = get_ni_nij_nyi(x, y, xvDict, yvDict)
     t_hat = get_estimator(nij, axis=1)
@@ -112,12 +118,16 @@ def get_estimator(n_mat, axis=0):
     """
     get the estimator of t_hat or q_hat while ignoring 0's
     :param n_mat: the from which we get the estimator from.
+    :param axis: which axis to normalize over (axis 0 divide every entry by the sum of its column
+                    axis 1 divides by sum of row)
     :return: the estimator of t_hat or q_hat while ignoring 0's
     """
     if axis==0:
         denom = repmat(np.sum(n_mat, axis=0)[np.newaxis, :], n_mat.shape[0], 1)
     elif axis == 1:
         denom = repmat(np.sum(n_mat, axis=1)[:, np.newaxis], 1, n_mat.shape[1])
+    else:
+        raise Exception('Illegal axis for normalization')
     mask = denom == 0.
     denom[mask] = 1
     res = np.divide(n_mat, denom)
@@ -153,7 +163,7 @@ def sample_seq(seq_len, xvlist, yvlist, t, e, q):
     :param e: shape = (| val ( X )| ,| val ( Y )|) emission
     :param q: shape = | val ( X )| probability to see i in valX as the first word in
                 the sentence.
-    :return:
+    :return: seq_x, seq_y - sequence of pos taggings and a matching sequnce of words.
     """
     def sample_y(col):
         """
@@ -166,7 +176,8 @@ def sample_seq(seq_len, xvlist, yvlist, t, e, q):
     def sample_newx(row):
         """
         sample a tag
-        :param row: index of the current POS (we want to find the next which is one of the columns in the row)
+        :param row: index of the current POS (we want to find the next which is one of the columns in the
+                    row)
         :return: sample a tag
         """
         return np.where(multinomial(1, t[row, :]) == 1)[0][0]
@@ -196,21 +207,29 @@ def viterbi_non_general(y, suppxList, suppyDict, t, e, q):
                 the sentence.
     : return : xhat , the most likely sequence of hidden states ( parts of speech ).
     """
+    # Inits
     M, S = len(y), len(suppxList)
     v_mat = np.zeros((M, S, 2))
+
+    # initial values
     v_mat[0, :, 1] = np.multiply(q, e[suppyDict[y[0]], :])
 
+    # dynamically fill the v table
     for tidx in range(1, M):
         # calc row tidx
         for j in range(S):
-            possible_values = np.asarray([v_mat[tidx - 1, i, 1] * t[i, j] * e[suppyDict[y[tidx]], j] for i in range(S)])
+            possible_values = np.asarray([v_mat[tidx - 1, i, 1] * t[i, j] * e[suppyDict[y[tidx]], j]
+                                          for i in range(S)])
             v_mat[tidx, j, 0] = np.argmax(possible_values)
             v_mat[tidx, j, 1] = possible_values[int(v_mat[tidx, j, 0])]
+
+    # infer the most likely path by backtracking from maximal value
     max_v_idx_cur = int(np.argmax(v_mat[-1, :, 1]))
     x_hat = np.zeros((M, 1))
     for i in range(M):
         x_hat[-i - 1] = max_v_idx_cur
         max_v_idx_cur = int(v_mat[M - 1 - i, max_v_idx_cur, 0])
+
     return np.asarray(suppxList)[x_hat.astype(np.int32)][:, 0]
 
 
@@ -232,13 +251,14 @@ def viterbi(y, suppxList, phi, w):
         """
         return r / r.sum()
 
+    # inits
     M, S = len(y), len(suppxList)
-
     v_mat = np.zeros((M, S, 2))
+
+    # Initial row value
     v_mat[0, :, 1] = normalize_row(np.exp(np.asarray([np.sum(w[phi(xt, 'XXX', y, 0)]) for xt in suppxList])))
 
-    from time import time
-    t = time()
+    # dynamically fill the v table
     phi_trans = np.zeros((S, S))  # Every row is a specific x(t-1), every column is a choice for x(t)
     for tidx in range(1, M):
         # calc row tidx
@@ -252,7 +272,8 @@ def viterbi(y, suppxList, phi, w):
 
         v_mat[tidx, :, 0] = phi_trans.argmax(axis=0)
         v_mat[tidx, :, 1] = phi_trans.max(axis=0)
-    #print(str(M), time() - t)
+
+    # infer the most likely path by backtracking from maximal value
     max_v_idx_cur = int(np.argmax(v_mat[-1, :, 1]))
     x_hat = np.zeros((M, 1))
     for i in range(M):
@@ -286,8 +307,8 @@ def perceptron(X, Y, suppxList, phi, w0, rate):
 
     N = len(X)
     w = w0.copy()
-    for i in range(N/2):
-        if (i+1) % 100 == 0: print(i)
+    for i in range(N):
+        if (i+1) % 100 == 0: print(i)  # For tracing
         x_hat = viterbi(Y[i], suppxList, phi, w)
         update_w(x_hat, i, w)
 

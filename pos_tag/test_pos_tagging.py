@@ -245,17 +245,17 @@ def run_perceptrons(D, RATE, simple_phi, trainX, trainY, xvlist):
     w0 = np.zeros(D)
     print("Perceptron simple phi space")
     w_hat = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0,
-                                   RATE)  # todo check different rates
+                                   RATE)
     char_phi, D2 = phi_models.get_word_carachteristics_phi()
     phi_complex, D3 = phi_models.get_complex_phi(char_phi, D2, simple_phi, D)
     w0_char = np.zeros(D2)
     w0_complex = np.zeros(D3)
     print("Perceptron simple char space")
     w_char = pos_tagging.perceptron(trainX, trainY, xvlist, char_phi, w0_char,
-                                    RATE)  # todo check different rates
+                                    RATE)
     print("Perceptron simple complex space")
     w_complex = pos_tagging.perceptron(trainX, trainY, xvlist, phi_complex, w0_complex,
-                                       RATE)  # todo check different rates
+                                       RATE)
     return char_phi, phi_complex, w_char, w_complex, w_hat
 
 

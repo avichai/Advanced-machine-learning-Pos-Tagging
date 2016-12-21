@@ -256,7 +256,7 @@ def run_perceptrons(D, RATE, simple_phi, trainX, trainY, xvlist, testX, testY, x
     """
     running the perceptron algorithm on different models.
     """
-    PERC_FOR_TESTING = 0.05
+    PERC_FOR_TESTING = 0.2
     INTERVAL_FOR_TESTING = 1000
     w0 = np.zeros(D)
     print("Perceptron simple phi space")

@@ -34,6 +34,7 @@ class TestingResult:
         self.results_perceptron_complex_train_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
         self.results_perceptron_complex_test_err = np.zeros((len(TRAIN_DATA_PERCNTAGES), NUM_REPITIONS))
 
+
     def dump(self, pth):
         pdir, name = os.path.split(pth)
         if not os.path.exists(pdir):
@@ -59,6 +60,13 @@ class TestingResult:
         ax.set_xlim([0.9, self.NUM_REPITIONS + 0.1])
         ax.xaxis.set_ticks(np.arange(1, self.NUM_REPITIONS + 1, 1, dtype=np.int32))
 
+        ax2 = ax.twinx()
+        for avg in np.mean(mat, axis=1):
+            ax2.axhline(avg, color='k')
+        ax2.set_ylim(ax.get_ylim())
+        ax2.set_ylabel('Mean')
+        ax2.set_yticks(np.mean(mat, axis=1))
+
     def plot_initial_plots(self):
         f = plt.figure()
         f.suptitle("Performance as a function of training data size")
@@ -77,6 +85,7 @@ class TestingResult:
         ax = plt.subplot(3, 2, 6)
         self.plot_results('Sample Number Vs. Test Error (Per sample size)', self.results_test_err, ax)
 
+
     def plot_perceptron_plots(self):
         f = plt.figure()
         f.suptitle("Perceptron plots")
@@ -92,6 +101,11 @@ class TestingResult:
         self.plot_results('complex perc train', self.results_perceptron_complex_train_err, ax, 'left')
         ax = plt.subplot(3, 2, 6)
         self.plot_results('complex perc test', self.results_perceptron_complex_test_err, ax)
+
+        if hasattr(self, 'perceptron_curves'):
+            for key, val in self.perceptron_curves.items():
+                val.plot(legend=True, title=key)
+
 
     def plot(self):
         self.plot_initial_plots()

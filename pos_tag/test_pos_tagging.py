@@ -128,7 +128,7 @@ def main():
 
     # Constants
     NUM_REPITIONS = 1
-    TRAIN_DATA_PERCNTAGES = [0.9]#[0.1, 0.25, 0.5, 0.9]
+    TRAIN_DATA_PERCNTAGES = [0.3]#[0.1, 0.25, 0.5, 0.9]
     zippth = './data_split.gz'
     pickle_savepth = './results.pickle'
     SAMPLE_SIZE_FOR_ERROR = 10  # TODO - if 0 then on everything
@@ -236,24 +236,29 @@ def run_perceptrons(D, RATE, simple_phi, trainX, trainY, xvlist, testX, testY, x
     """
     running the perceptron algorithm on different models.
     """
-    PERC_FOR_TESTING = 0.15
+    PERC_FOR_TESTING = 0.05
     INTERVAL_FOR_TESTING = 1000
     w0 = np.zeros(D)
-    print("Perceptron simple phi space")
-    w_hat, errors_simple, intervals = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0,
-                                                             RATE, [testX, testY], PERC_FOR_TESTING, INTERVAL_FOR_TESTING)
+    # print("Perceptron simple phi space")
+    # w_hat, errors_simple, intervals = pos_tagging.perceptron(trainX, trainY, xvlist, simple_phi, w0,
+    #                                                          RATE, [testX, testY], PERC_FOR_TESTING, INTERVAL_FOR_TESTING)
+    # print("Simple.\nIntervals: {0}\nErrors: {1}\n".format(intervals, errors_simple))
+
     char_phi, D2 = phi_models.get_word_carachteristics_phi(xvDict)
     phi_complex, D3 = phi_models.get_complex_phi(char_phi, D2, simple_phi, D)
     w0_char = np.zeros(D2)
     w0_complex = np.zeros(D3)
-    print("Perceptron simple char space")
-    w_char, errors_char = pos_tagging.perceptron(trainX, trainY, xvlist, char_phi, w0_char,
-                                                 RATE, [testX, testY], PERC_FOR_TESTING, INTERVAL_FOR_TESTING)
+    # print("Perceptron simple char space")
+    # w_char, errors_char, intervals = pos_tagging.perceptron(trainX, trainY, xvlist, char_phi, w0_char,
+    #                                              RATE, [testX, testY], PERC_FOR_TESTING, INTERVAL_FOR_TESTING)
+    # print("Char.\nIntervals: {0}\nErrors: {1}\n".format(intervals, errors_char))
     print("Perceptron simple complex space")
-    w_complex, errors_complex = pos_tagging.perceptron(trainX, trainY, xvlist, phi_complex, w0_complex,
+    w_complex, errors_complex, intervals = pos_tagging.perceptron(trainX, trainY, xvlist, phi_complex, w0_complex,
                                                        RATE, [testX, testY], PERC_FOR_TESTING, INTERVAL_FOR_TESTING)
-    return char_phi, phi_complex, w_char, w_complex, w_hat, \
-           intervals, errors_simple, errors_char, errors_complex
+    print("Complex.\nIntervals: {0}\nErrors: {1}\n".format(intervals, errors_complex))
+
+    # return char_phi, phi_complex, w_char, w_complex, w_hat, \
+    #        intervals, errors_simple, errors_char, errors_complex
 
 
 def calculate_inference_errors(char_phi, phi_complex, pidx, rep, results, sentencesx, sentencesy,

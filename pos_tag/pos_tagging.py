@@ -336,7 +336,7 @@ def perceptron(X, Y, suppxList, phi, w0, rate, test_data=None, data_perc4infernc
 
     N = len(X)
     w = w0.copy()
-
+    wres = w.copy()
     if test_data is not None:
         testing = True
         intervals = np.arange(0, N+1, infernce_interval)
@@ -349,15 +349,16 @@ def perceptron(X, Y, suppxList, phi, w0, rate, test_data=None, data_perc4infernc
     for i in range(N):
         if testing and i % infernce_interval == 0:
             sentencesx, sentencesy = sample_data()
-            errors[i // infernce_interval] = get_inference_err(sentencesx, sentencesy, suppxList, phi, w)
+            errors[i // infernce_interval] = get_inference_err(sentencesx, sentencesy, suppxList, phi, wres)
 
-        if (i+1) % 100 == 0: print(i)  # For tracing
+        if (i+1) % 100 == 0: print('{0} / {1}'.format(i+1, N))  # For tracing
         x_hat = viterbi(Y[i], suppxList, phi, w)
         update_w(x_hat, i, w)
+        wres = (wres * i + w) / (i+1) # running mean
 
     if testing:
         sentencesx, sentencesy = sample_data()
-        errors[-1] = get_inference_err(sentencesx, sentencesy, suppxList, phi, w)
-        return w, errors, intervals
+        errors[-1] = get_inference_err(sentencesx, sentencesy, suppxList, phi, wres)
+        return wres, errors, intervals
 
-    return w
+    return wres

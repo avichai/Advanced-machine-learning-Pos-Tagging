@@ -37,21 +37,22 @@ Errors: [ 1.          0.2464455   0.25248689  0.16287879  0.19644141  0.17363285
 
 
 
-
+Char
   Train - 0.5, Test sample rate 0.05 (out of 0.1), rate = 0.01, intervals= 1000
 
 TODO
 
+Complex
     Train - 0.5, Test sample rate 0.05 (out of 0.1), rate = 0.01, intervals= 1000
 
 TODO
 
-
+Simple
       Train - 0.25, Test sample rate 0.05 (out of 0.1), rate = 0.1, intervals= 1000
 
 TODO
 
-
+AVG- Simple
       Train - 0.3, Test sample rate 0.05 (out of 0.1), rate = 0.03, intervals= 1000 - AVG
 
       TODO

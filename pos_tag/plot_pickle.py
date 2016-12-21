@@ -2,6 +2,9 @@ import sys
 from pos_tag.test_pos_tagging import TestingResult
 import pickle
 
+"""
+This script receives as a command line argument the path of a Testing result pickle, loads and plots it.
+"""
 
 
 def main():

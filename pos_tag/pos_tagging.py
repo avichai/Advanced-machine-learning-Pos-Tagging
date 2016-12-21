@@ -313,6 +313,7 @@ def perceptron(X, Y, suppxList, phi, w0, rate, test_data=None, data_perc4infernc
     : param w0 : initial model
     : param rate : rate of learning
     : return : w , a weight vector for the log - linear model features .
+                w is the averaged weight vectors during the entire run
     """
 
     def update_w(x_hat, i, w):
